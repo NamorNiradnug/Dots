@@ -27,6 +27,12 @@ def draw_paper(x, y):
     for i in range(len(points_map[y:y + h:])):
         for j in range(len(points_map[i][x:x + w:])):
             draw_point(points_map[y:y + h:][i][x:x + w:][j], j, i)
+    for i in range(len(points_map[y:y + h - 1:])):
+        for j in range(len(points_map[i][x:x + w - 1:])):
+            if points_map[i][j] == points_map[i][j + 1] > 0:
+                paper.create_line((j * 16 - 8) * zoom_koef[0], (i * 16 - 8) * zoom_koef[0], (j * 16 + 8) * zoom_koef[0], (i * 16 - 8) * zoom_koef[0], fill = players_color_list[points_map[i][j]], width = 2 * zoom_koef[0])
+            if points_map[i][j] == points_map[i + 1][j] > 0:
+                paper.create_line((j * 16 - 8) * zoom_koef[0], (i * 16 - 8) * zoom_koef[0], (j * 16 - 8) * zoom_koef[0], (i * 16 + 8) * zoom_koef[0], fill = players_color_list[points_map[i][j]], width = 2 * zoom_koef[0])        
 
 
 def to_zoom_koef(zoom_k):
@@ -34,7 +40,6 @@ def to_zoom_koef(zoom_k):
         paper.delete('all')
         zoom_koef[0] = zoom_k
         draw_paper(paper_coords[0], paper_coords[1])    
-    
 
 
 def move_screen(x, y):
@@ -49,12 +54,12 @@ def move_screen(x, y):
         zero_move[0] += 1
     paper.delete('all')
     draw_paper(paper_coords[0] + x, paper_coords[1] + y)
-    
-    
+
+
 def create_point(x, y):
     x ,y = x // (16 * zoom_koef[0]) + paper_coords[0], y // (16 * zoom_koef[0]) + paper_coords[1]
     #send to server  x - zero_move[0], y - zero_move[1] - new point coords
-    #if server answer == true: 
+    #if server answer == true:
     if points_map[y][x] == 0:
         points_map[y][x] = player_how_turn[0]
         paper.delete('all')
@@ -63,6 +68,7 @@ def create_point(x, y):
             player_how_turn[0] = 2
         else:
             player_how_turn[0] = 1
+
 
 draw_paper(1, 1)
 root.bind('<Control-=>', lambda event: to_zoom_koef(zoom_koef[0] * 2))
