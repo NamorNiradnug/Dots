@@ -13,6 +13,12 @@ paper = Canvas(root, width = 160 * 4, height = 4 * 160)
 paper.pack() 
 
 
+def track(from_point, to_point, player_num):
+    if point_map[from_point[1]][from_point[0] + 1] == player_num:
+        
+            
+
+
 def draw_point(point_type, x, y):
     paper.create_line((x * 16 + 8) * zoom_koef[0], y * zoom_koef[0] * 16, (x * 16 + 8) * zoom_koef[0], (y + 1) * zoom_koef[0] * 16)
     paper.create_line(x * zoom_koef[0] * 16, (y * 16 + 8) * zoom_koef[0], (x + 1) * zoom_koef[0] * 16,  (y * 16 + 8) * zoom_koef[0])
