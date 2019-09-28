@@ -4,6 +4,7 @@ points_map = [[0] * 100 for __ in range(100)]
 first_player_color, second_player_color = "red", "green"
 players_color_list = [0, first_player_color, second_player_color]
 
+player_how_turn = [1]
 zoom_koef = [2]
 paper_coords = [0, 0]
 zero_move = [0, 0]
@@ -29,10 +30,10 @@ def draw_paper(x, y):
 
 
 def to_zoom_koef(zoom_k):
-    if zoom_k != 0 and zoom_k != 128:
+    if zoom_k != 0 and zoom_k != 16:
         paper.delete('all')
         zoom_koef[0] = zoom_k
-        draw_paper()    
+        draw_paper(paper_coords[0], paper_coords[1])    
     
 
 
@@ -40,7 +41,7 @@ def move_screen(x, y):
     if paper_coords[1] + y <= 0:
         points_map.insert(0, [0] * len(points_map[0]))
         paper_coords[1] += 1
-        zero_move[1] -= 1
+        zero_move[1] += 1
     if paper_coords[0] + x <= 0:
         for i in range(len(points_map)):
             points_map[i].insert(0, 0)
@@ -51,18 +52,21 @@ def move_screen(x, y):
     
     
 def create_point(x, y):
-    x ,y = x // (16 * zoom_koef[0]) - paper_coords[0], y // (16 * zoom_koef[0]) - paper_coords[1]
-    #send to server
+    x ,y = x // (16 * zoom_koef[0]) + paper_coords[0], y // (16 * zoom_koef[0]) + paper_coords[1]
+    #send to server  x - zero_move[0], y - zero_move[1] - new point coords
+    #if server answer == true: 
     if points_map[y][x] == 0:
-        print(x, y)
-        points_map[y][x] == 1
+        points_map[y][x] = player_how_turn[0]
         paper.delete('all')
-        draw_paper(paper_coords[0], paper_coords[1])        
-    
+        draw_paper(paper_coords[0], paper_coords[1])
+        if player_how_turn[0] == 1:
+            player_how_turn[0] = 2
+        else:
+            player_how_turn[0] = 1
 
 draw_paper(1, 1)
-#root.bind('<Control-=>', lambda event: to_zoom_koef(zoom_koef[0] ** 2))
-#root.bind('<MouseWheel>', lambda event: to_zoom_koef(zoom_koef[0] // 2))
+root.bind('<Control-=>', lambda event: to_zoom_koef(zoom_koef[0] * 2))
+root.bind('<MouseWheel>', lambda event: to_zoom_koef(zoom_koef[0] // 2))
 root.bind('<Up>', lambda event: move_screen(0, -1))
 root.bind('<Down>', lambda event: move_screen(0, 1))
 root.bind('<Left>', lambda event: move_screen(-1, 0))
