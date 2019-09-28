@@ -13,9 +13,53 @@ paper = Canvas(root, width = 160 * 4, height = 4 * 160)
 paper.pack() 
 
 
-def track(from_point, to_point, player_num):
-    if point_map[from_point[1]][from_point[0] + 1] == player_num:
-        
+def track(from_point, to_point, player_num, trakc_before):
+    tracks = []
+    if from_point == to_point:
+        return []
+    else:
+        try:
+            if points_map[from_point[1] - 1][from_point[0]] == player_num:
+                tracks.append([1] + track([from_point[0] - 1, from_point[1]], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1] - 1][from_point[0] + 1] == player_num:
+                tracks.append([2] + track([from_point[0] + 1, from_point[1] - 1], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1]][from_point[0] + 1] == player_num:
+                tracks.append([3] + track([from_point[0] + 1, from_point[1]], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1] + 1][from_point[0] + 1] == player_num:
+                tracks.append([4] + track([from_point[0] + 1, from_point[1] + 1], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1] + 1][from_point[0]] == player_num:
+                tracks.append([5] + track([from_point[0] + 1, from_point[1]], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1] + 1][from_point[0] - 1] == player_num:
+                tracks.append([6] + track([from_point[0] - 1, from_point[1] + 1], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1]][from_point[0] - 1] == player_num:
+                tracks.append([7] + track([from_point[0] - 1, from_point[1]], to_point, player_num))
+        except:
+            pass
+        try:
+            if points_map[from_point[1] - 1][from_point[0] - 1] == player_num:
+                tracks.append([8] + track([from_point[0] - 1, from_point[1] - 1], to_point, player_num))
+        except:
+            pass
+        #while
+        #for i in range(len(tracks)):
             
 
 
