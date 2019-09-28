@@ -5,7 +5,7 @@ from points_res import points_map, players_color_list
 zoom_koef = [2]
 root = Tk()
 paper = Canvas(root, width = 160 * 4, height = 4 * 160)
-paper.pack()
+paper.pack() 
 
 
 def draw_point(point_type, x, y):
@@ -30,7 +30,13 @@ def to_zoom_koef(zoom_k):
         draw_paper()    
     
 
+
+def move_screen(x, y):
+    paper.move("all", -x, -y)
+    
+
 draw_paper()
 root.bind('<Control-=>', lambda event: to_zoom_koef(zoom_koef[0]+1))
+root.bind('<Up>', lambda event: move_screen(0, -16 * zoom_koef[0]))
 #root.bind('<Control-->', lambda event: to_zoom_koef(zoom_koef[0]-1))
 root.mainloop()
