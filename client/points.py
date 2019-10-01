@@ -4,6 +4,7 @@ points_map = [[0] * 100 for __ in range(100)]
 first_player_color, second_player_color = "red", "green"
 players_color_list = [0, first_player_color, second_player_color]
 all_tracks = [[]]
+all_draw_trakcs = [[]]
 
 
 player_how_turn = [1]
@@ -15,78 +16,43 @@ paper = Canvas(root, width = 160 * 4, height = 4 * 160)
 paper.pack() 
 
 
-def track(from_point, to_point, player_num, track_before = 0):
-    tracks = []
-    if from_point == to_point and track_before != 0:
-        print(point_from, point_to)
-        return []
-    else:
-        try:
-            if points_map[from_point[1] - 1][from_point[0]] == player_num:
-                t = track([from_point[0], from_point[1] - 1], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0], from_point[1] - 1]}) == 0:
-                        tracks.append({from_point, [from_point[0], from_point[1] - 1]} + i)
-        except:
-            pass
-        try:
-            if points_map[from_point[1] - 1][from_point[0] + 1] == player_num:
-                t = track([from_point[0] + 1, from_point[1] - 1], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0] + 1, from_point[1] - 1]}) == 0:
-                        tracks.append({from_point, [from_point[0] + 1, from_point[1] - 1]} + i)
-        except:
-            pass
-        try:
-            if points_map[from_point[1]][from_point[0] + 1] == player_num:
-                t = track([from_point[0] + 1, from_point[1]], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0] + 1, from_point[1]]}) == 0:
-                        tracks.append({from_point, [from_point[0] + 1, from_point[1]]} + i)
-        except:
-            pass
-        try:
-            if points_map[from_point[1] + 1][from_point[0] + 1] == player_num:
-                t = track([from_point[0] + 1, from_point[1] + 1], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0] + 1, from_point[1] + 1]}) == 0:
-                        tracks.append({from_point, [from_point[0] + 1, from_point[1] + 1]} + i)                
-        except:
-            pass
-        try:
-            if points_map[from_point[1] + 1][from_point[0]] == player_num:
-                t = track([from_point[0], from_point[1] + 1], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0], from_point[1] + 1]}) == 0:
-                        tracks.append({from_point, [from_point[0], from_point[1] + 1]} + i)
-        except:
-            pass
-        try:
-            if points_map[from_point[1] + 1][from_point[0] - 1] == player_num:
-                t = track([from_point[0] - 1, from_point[1] + 1], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0] - 1, from_point[1] + 1]}) == 0:
-                        tracks.append({from_point, [from_point[0] - 1, from_point[1] + 1]} + i)                
-        except:
-            pass
-        try:
-            if points_map[from_point[1]][from_point[0] - 1] == player_num:
-                t = track([from_point[0] - 1, from_point[1]], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0] - 1, from_point[1]]}) == 0:
-                        tracks.append({from_point, [from_point[0] - 1, from_point[1]]} + i)
-        except:
-            pass
-        try:
-            if points_map[from_point[1] - 1][from_point[0] - 1] == player_num:
-                t = track([from_point[0] - 1, from_point[1] - 1], to_point, player_num, 1)
-                for i in t:
-                    if t.count({from_point, [from_point[0] - 1, from_point[1] - 1]}) == 0:
-                        tracks.append({from_point, [from_point[0] - 1, from_point[1] - 1]} + i)
-        except:
-            pass
-        print(tracks, from_point, to_point)
-        return tracks
+def point_up(point):
+    return [point[0], point[1] - 1]
+
+def point_up_left(point):
+    return [point[0] - 1, point[1] - 1]
+
+def point_left(point):
+    return [point[0] - 1, point[1]]
+
+def point_up_right(point):
+    return [point[0] + 1, point[1] - 1]
+
+def point_right(point):
+    return [point[0] + 1, point[1]]
+
+def point_down(point):
+    return [point[0], point[1] + 1]
+
+def point_down_left(point):
+    return [point[0] - 1, point[1] + 1]
+
+def point_down_right(point):
+    return [point[0] + 1, point[1] + 1]
+
+nigh_points_func = [point_up, point_up_left, point_left, point_up_right, point_right, point_down, point_down_left, point_down_right]
+npf = nigh_points_func
+
+
+def have_points_connect(point1, point2, used_points = []):
+    result = False
+    if point1 == point2 and len(used_points) != 0:
+        return True
+    for i in npf:
+        if points_map[(i(point1))[1]][(i(point1))[0]] == points_map[point1[1]][point1[0]] and used_points.count(i(point1)) == 0:
+            print(used_points)
+            result += have_points_connect(i(point1), point2, used_points + [point1])
+    return bool(result)
 
 
 def draw_point(point_type, x, y):
@@ -136,14 +102,13 @@ def create_point(x, y):
     x ,y = x // (16 * zoom_koef[0]) + paper_coords[0], y // (16 * zoom_koef[0]) + paper_coords[1]
     if points_map[y][x] == 0:
         points_map[y][x] = player_how_turn[0]
-        all_tracks[0] = all_tracks[0] + track([x, y], [x, y], player_how_turn[0])
+        print(have_points_connect([x, y], [x, y]))
         paper.delete('all')
         draw_paper(paper_coords[0], paper_coords[1])
         if player_how_turn[0] == 1:
             player_how_turn[0] = 2
         else:
             player_how_turn[0] = 1
-        print(all_tracks[0], 1)
 
 
 draw_paper(1, 1)
