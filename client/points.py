@@ -49,7 +49,7 @@ def have_points_connect(point1, point2, used_points = []):
     if point1 == point2 and len(used_points) != 0:
         return True
     for i in npf:
-        if points_map[(i(point1))[1]][(i(point1))[0]] == points_map[point1[1]][point1[0]] and used_points.count(i(point1)) == 0:
+        if points_map[(i(point1))[1]][(i(point1))[0]] == points_map[point1[1]][point1[0]] and used_points.count(point1) == 0:
             print(used_points)
             result += have_points_connect(i(point1), point2, used_points + [point1])
     return bool(result)
