@@ -4,7 +4,7 @@ points_map = [[0] * 100 for __ in range(100)]
 first_player_color, second_player_color = "red", "green"
 players_color_list = [0, first_player_color, second_player_color]
 all_tracks = [[]]
-all_draw_trakcs = [[]]
+#all_draw_trakcs = [[]]
 
 
 player_how_turn = [1]
@@ -40,19 +40,26 @@ def point_down_left(point):
 def point_down_right(point):
     return [point[0] + 1, point[1] + 1]
 
-nigh_points_func = [point_up, point_up_left, point_left, point_up_right, point_right, point_down, point_down_left, point_down_right]
+nigh_points_func = [point_up, point_up_left, point_left, point_up_right, point_down_left, point_right, point_down_right, point_down]
 npf = nigh_points_func
 
 
-def have_points_connect(point1, point2, used_points = []):
+def have_points_connect(point1, point2, used_tracks = {1}, track_len = 0):
     result = False
-    if point1 == point2 and len(used_points) != 0:
-        return True
+    print(point1, point2)
+    if point1 == point2 and track_len > 2:
+        print(3)
+        return True, used_tracks
     for i in npf:
-        if points_map[(i(point1))[1]][(i(point1))[0]] == points_map[point1[1]][point1[0]] and used_points.count(point1) == 0:
-            print(used_points)
-            result += have_points_connect(i(point1), point2, used_points + [point1])
-    return bool(result)
+        try:
+            if points_map[(i(point1))[1]][(i(point1))[0]] == points_map[point1[1]][point1[0]] and not ((tuple(i(point1)), point1) in used_tracks):
+                print(used_tracks, (point1, point2))
+                variable = have_points_connect(tuple(i(point1)), point2, used_tracks and {(tuple(i(point1)), point2), (point2, tuple(i(point1)))}, track_len + 1)
+                result += variable[0]
+                used_tracks.update(variable[1])
+        except:
+            pass
+    return bool(result), used_tracks
 
 
 def draw_point(point_type, x, y):
@@ -102,7 +109,7 @@ def create_point(x, y):
     x ,y = x // (16 * zoom_koef[0]) + paper_coords[0], y // (16 * zoom_koef[0]) + paper_coords[1]
     if points_map[y][x] == 0:
         points_map[y][x] = player_how_turn[0]
-        print(have_points_connect([x, y], [x, y]))
+        print(have_points_connect((x, y), (x, y)))
         paper.delete('all')
         draw_paper(paper_coords[0], paper_coords[1])
         if player_how_turn[0] == 1:
