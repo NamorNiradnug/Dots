@@ -10,13 +10,13 @@ class App:
 
         self.is_green_turn = False
         self.scale = 2
-        self.position = [0, 0]
-        self.origin = [0, 0]
+        self.position = (0, 0)
+        self.origin = (0, 0)
         self.window = Tk()
         self.canvas = Canvas(self.window, width=160 * 4, height=4 * 160)
         self.canvas.pack()
 
-        self.draw(1, 1)
+        self.draw((1, 1))
         self.window.bind('<Control-=>', lambda event: self.to_scale(self.scale * 2))
         self.window.bind('<MouseWheel>', lambda event: self.to_scale(self.scale // 2))
         self.window.bind('<Up>', lambda event: self.translate(0, -1))
@@ -46,12 +46,11 @@ class App:
                 pass
         return bool(result), tracks
 
-    def draw(self, x, y):
-        self.position[0] = x
-        self.position[1] = y
+    def draw(self, point):
+        self.position = point
         w = h = 640 // (self.scale * 16)
-        for i in range(len(self.points_map[y:y + h])):
-            for j in range(len(self.points_map[i][x:x + w])):
+        for i in range(len(self.points_map[point[1]:point[1] + h])):
+            for j in range(len(self.points_map[i][point[0]:point[0] + w])):
                 self.canvas.create_line((i * 16 + 8) * self.scale, j * self.scale * 16,
                                         (i * 16 + 8) * self.scale, (j + 1) * self.scale * 16)
                 self.canvas.create_line(i * self.scale * 16, (j * 16 + 8) * self.scale,
@@ -59,9 +58,11 @@ class App:
                 if self.points_map[j:j + h][i][i:i + w][j] != 0:
                     self.canvas.create_oval((i * 16 + 5) * self.scale, (j * 16 + 5) * self.scale,
                                             (i * 16 + 11) * self.scale, (j * 16 + 11) * self.scale,
-                                            fill=self.colors[self.points_map[y:y + h][i][x:x + w][j]])
-        for i in range(len(self.points_map[y:y + h - 1])):
-            for j in range(len(self.points_map[i][x:x + w - 1])):
+                                            fill=self.colors[
+                                                self.points_map[point[1]:point[1] + h][i][point[0]:point[0] + w][j]
+                                            ])
+        for i in range(len(self.points_map[point[1]:point[1] + h - 1])):
+            for j in range(len(self.points_map[i][point[0]:point[0] + w - 1])):
                 if self.points_map[i][j] == self.points_map[i][j + 1] > 0:
                     self.canvas.create_line((j * 16 - 8) * self.scale, (i * 16 - 8) * self.scale,
                                             (j * 16 + 8) * self.scale, (i * 16 - 8) * self.scale,
@@ -77,20 +78,20 @@ class App:
         if _scale != 0 and _scale != 16:
             self.canvas.delete('all')
             self.scale = _scale
-            self.draw(self.position[0], self.position[1])
+            self.draw(self.position)
 
     def translate(self, dx, dy):
-        if self.position[1] + dy <= 0:
+        if self.position[1] <= -dy:
             self.points_map.insert(0, [0] * len(self.points_map[0]))
-            self.position[1] += 1
-            self.origin[1] += 1
-        if self.position[0] + dx <= 0:
+            self.position = (self.position[0], self.position[1] + 1)
+            self.origin = (self.origin[0], self.origin[1] + 1)
+        if self.position[0] <= -dx:
             for i in range(len(self.points_map)):
                 self.points_map[i].insert(0, 0)
-            self.position[0] += 1
-            self.origin[0] += 1
+            self.position = (self.position[0] + 1, self.position[1])
+            self.origin = (self.origin[0] + 1, self.origin[1])
         self.canvas.delete('all')
-        self.draw(self.position[0] + dx, self.position[1] + dy)
+        self.draw((self.position[0] + dx, self.position[1] + dy))
 
     def create_point(self, x, y):
         x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
@@ -98,7 +99,7 @@ class App:
             self.points_map[y][x] = int(self.is_green_turn) + 1
             print(self.do_connect((x, y), (x, y)))
             self.canvas.delete('all')
-            self.draw(self.position[0], self.position[1])
+            self.draw((self.position[0], self.position[1]))
             self.is_green_turn = not self.is_green_turn
 
 
