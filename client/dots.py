@@ -8,7 +8,7 @@ class App:
             self.points_map.append([0] * 100)
         self.colors = [0, "#20D020", "blue"]
 
-        self.is_green_turn = [False]
+        self.is_green_turn = False
         self.scale = 2
         self.position = [0, 0]
         self.origin = [0, 0]
@@ -34,12 +34,12 @@ class App:
             print(3)
             return True, tracks
         result = False
-        for i in ((p1[0], p1[1] - 1), (p1[0] - 1, p1[1] - 1), (p1[0] - 1, p1[1]), (p1[0] + 1, p1[1] - 1),
-                  (p1[0] - 1, p1[1] + 1), (p1[0] + 1, p1[1]), (p1[0] + 1, p1[1] + 1), (p1[0], p1[1] + 1)):
+        for point in ((p1[0], p1[1] - 1), (p1[0] - 1, p1[1] - 1), (p1[0] - 1, p1[1]), (p1[0] + 1, p1[1] - 1),
+                      (p1[0] - 1, p1[1] + 1), (p1[0] + 1, p1[1]), (p1[0] + 1, p1[1] + 1), (p1[0], p1[1] + 1)):
             try:
-                if self.points_map[i[1]][i[0]] == self.points_map[p1[1]][p1[0]] and not ((i, p1) in tracks):
+                if self.points_map[point[1]][point[0]] == self.points_map[p1[1]][p1[0]] and not ((point, p1) in tracks):
                     print(tracks, (p1, p2))
-                    variable = self.do_connect(i, p2, tracks and {(i, p2), (p2, i)}, length + 1)
+                    variable = self.do_connect(point, p2, tracks and {(point, p2), (p2, point)}, length + 1)
                     result += variable[0]
                     tracks.update(variable[1])
             except IndexError:
@@ -50,18 +50,18 @@ class App:
         self.position[0] = x
         self.position[1] = y
         w = h = 640 // (self.scale * 16)
-        for i in range(len(self.points_map[y:y + h:])):
-            for j in range(len(self.points_map[i][x:x + w:])):
+        for i in range(len(self.points_map[y:y + h])):
+            for j in range(len(self.points_map[i][x:x + w])):
                 self.canvas.create_line((i * 16 + 8) * self.scale, j * self.scale * 16,
                                         (i * 16 + 8) * self.scale, (j + 1) * self.scale * 16)
                 self.canvas.create_line(i * self.scale * 16, (j * 16 + 8) * self.scale,
                                         (i + 1) * self.scale * 16, (j * 16 + 8) * self.scale)
-                if self.points_map[j:j + h:][i][i:i + w:][j] != 0:
+                if self.points_map[j:j + h][i][i:i + w][j] != 0:
                     self.canvas.create_oval((i * 16 + 5) * self.scale, (j * 16 + 5) * self.scale,
                                             (i * 16 + 11) * self.scale, (j * 16 + 11) * self.scale,
-                                            fill=self.colors[self.points_map[y:y + h:][i][x:x + w:][j]])
-        for i in range(len(self.points_map[y:y + h - 1:])):
-            for j in range(len(self.points_map[i][x:x + w - 1:])):
+                                            fill=self.colors[self.points_map[y:y + h][i][x:x + w][j]])
+        for i in range(len(self.points_map[y:y + h - 1])):
+            for j in range(len(self.points_map[i][x:x + w - 1])):
                 if self.points_map[i][j] == self.points_map[i][j + 1] > 0:
                     self.canvas.create_line((j * 16 - 8) * self.scale, (i * 16 - 8) * self.scale,
                                             (j * 16 + 8) * self.scale, (i * 16 - 8) * self.scale,
@@ -93,14 +93,13 @@ class App:
         self.draw(self.position[0] + dx, self.position[1] + dy)
 
     def create_point(self, x, y):
-        x, y = x // (16 * self.scale) + \
-               self.position[0], y // (16 * self.scale) + self.position[1]
+        x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
         if self.points_map[y][x] == 0:
-            self.points_map[y][x] = int(self.is_green_turn[0])
+            self.points_map[y][x] = int(self.is_green_turn) + 1
             print(self.do_connect((x, y), (x, y)))
             self.canvas.delete('all')
             self.draw(self.position[0], self.position[1])
-            self.is_green_turn[0] = not self.is_green_turn[0]
+            self.is_green_turn = not self.is_green_turn
 
 
 App()
