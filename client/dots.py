@@ -33,55 +33,52 @@ class Dots:
         if point1 == point2 and track_len > 2:
             print(3)
             return True, used_tracks
-        for i in ((point1[0], point1[1] - 1), (point1[0] - 1, point1[1] - 1),
-                  (point1[0] - 1, point1[1]), (point1[0] + 1, point1[1] - 1),
-                  (point1[0] - 1, point1[1] + 1), (point1[0] + 1, point1[1]),
-                  (point1[0] + 1, point1[1] + 1), (point1[0], point1[1] + 1)):
-            try:
-                if self.points[i[1]][i[0]] == self.points[point1[1]][point1[0]] and not (
-                        ((i,), point1) in used_tracks):
-                    variable = self.do_connect((i,), point2, used_tracks and {((i,), point2), (point2, (i,))},
-                                               track_len + 1)
-                    result += variable[0]
-                    used_tracks.update(variable[1])
-            except:
-                pass
+        for point in ((point1[0], point1[1] - 1), (point1[0] - 1, point1[1] - 1),
+                      (point1[0] - 1, point1[1]), (point1[0] + 1, point1[1] - 1),
+                      (point1[0] - 1, point1[1] + 1), (point1[0] + 1, point1[1]),
+                      (point1[0] + 1, point1[1] + 1), (point1[0], point1[1] + 1)):
+            if 0 < point[1] < len(self.points) and 0 < point[0] < len(self.points[point[1]]) and 0 < point1[1] < len(
+                    self.points) and 0 < point1[0] < len(self.points[point1[1]]) and self.points[point[1]][point[0]] ==\
+                    self.points[point1[1]][point1[0]] and not (((point,), point1) in used_tracks):
+                _next = self.do_connect((point,), point2, used_tracks and {((point,), point2), (point2, (point,))},
+                                        track_len + 1)
+                result += _next[0]
+                used_tracks.update(_next[1])
         return bool(result), used_tracks
 
     def draw_point(self, point_type, x, y):
-        self.canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16, (x * 16 + 8) * self.scale,
-                                (y + 1) * self.scale * 16)
-        self.canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale, (x + 1) * self.scale * 16,
-                                (y * 16 + 8) * self.scale)
+        self.canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
+                                (x * 16 + 8) * self.scale, (y + 1) * self.scale * 16)
+        self.canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale,
+                                (x + 1) * self.scale * 16, (y * 16 + 8) * self.scale)
         if point_type != 0:
-            self.canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale, (x * 16 + 11) * self.scale,
-                                    (y * 16 + 11) * self.scale, fill=self.colors[point_type])
+            self.canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
+                                    (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
+                                    fill=self.colors[point_type])
 
     def draw(self, x, y):
         self.position[0] = x
         self.position[1] = y
         w = h = 640 // (self.scale * 16)
-        for i in range(len(self.points[y:y + h:])):
-            for j in range(len(self.points[i][x:x + w:])):
-                self.draw_point(self.points[y:y + h:][i][x:x + w:][j], j, i)
-        for i in range(len(self.points[y:y + h:])):
-            for j in range(len(self.points[i][x:x + w:])):
-                try:
-                    if self.points[y:y + h:][i][x:x + w:][j] == self.points[y:y + h:][i][x:x + w:][j + 1] > 0:
+        for i in range(len(self.points[y:y + h])):
+            for j in range(len(self.points[i][x:x + w])):
+                self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
+        for i in range(len(self.points[y:y + h])):
+            for j in range(len(self.points[i][x:x + w])):
+                if 0 < y and y + h < len(self.points) and 0 < i < len(self.points[y:y + h]) and 0 < x and x + w < len(
+                        self.points[y:y + h][i]) and 0 < j < len(self.points[y:y + h][i][x:x + w]):
+                    if j + 1 < len(self.points[y:y + h][i][x:x + w]) and self.points[y:y + h][i][x:x + w][j] == \
+                            self.points[y:y + h][i][x:x + w][j + 1] > 0:
                         self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
                                                 (j * 16 + 24) * self.scale, (i * 16 + 8) * self.scale,
-                                                fill=self.colors[self.points[y:y + h:][i][x:x + w:][j]],
+                                                fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
                                                 width=2 * self.scale)
-                except:
-                    pass
-                try:
-                    if self.points[y:y + h:][i][x:x + w:][j] == self.points[y:y + h:][i + 1][x:x + w:][j] > 0:
+                    if i + 1 < len(self.points[y:y + h]) and self.points[y:y + h][i][x:x + w][j] == \
+                            self.points[y:y + h][i + 1][x:x + w][j] > 0:
                         self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
                                                 (j * 16 + 8) * self.scale, (i * 16 + 24) * self.scale,
-                                                fill=self.colors[self.points[y:y + h:][i][x:x + w:][j]],
+                                                fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
                                                 width=2 * self.scale)
-                except:
-                    pass
 
     def set_scale(self, scale):
         if scale != 0 and scale != 16:
