@@ -40,7 +40,6 @@ class Dots:
             try:
                 if self.points[i[1]][i[0]] == self.points[point1[1]][point1[0]] and not (
                         ((i,), point1) in used_tracks):
-                    print(used_tracks, (point1, point2))
                     variable = self.do_connect((i,), point2, used_tracks and {((i,), point2), (point2, (i,))},
                                                track_len + 1)
                     result += variable[0]
@@ -112,7 +111,6 @@ class Dots:
         x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
         if self.points[y][x] == 0:
             self.points[y][x] = self.is_greens_turn
-            # print(have_points_connect((x, y), (x, y)))
             self.canvas.delete('all')
             self.draw(self.position[0], self.position[1])
             if self.is_greens_turn == 1:
