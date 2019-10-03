@@ -37,19 +37,19 @@ class Dots:
         
         self.player_how_turn = 1
         self.scale = 2
-        self.paper_coords = [0, 0]
-        self.zero_move = [0, 0]
+        self.position = [0, 0]
+        self.origin = [0, 0]
         self.root = Tk()
         self.paper = Canvas(self.root, width = 160 * 4, height = 4 * 160)
         self.paper.pack() 
         
-        self.draw_paper(1, 1)
+        self.draw(1, 1)
         self.root.bind('<Control-=>', lambda event: self.to_scale(self.scale * 2))
         self.root.bind('<MouseWheel>', lambda event: self.to_scale(self.scale // 2))
-        self.root.bind('<Up>', lambda event: self.move_screen(0, -1))
-        self.root.bind('<Down>', lambda event: self.move_screen(0, 1))
-        self.root.bind('<Left>', lambda event: self.move_screen(-1, 0))
-        self.root.bind('<Right>', lambda event: self.move_screen(1, 0))
+        self.root.bind('<Up>', lambda event: self.translate(0, -1))
+        self.root.bind('<Down>', lambda event: self.translate(0, 1))
+        self.root.bind('<Left>', lambda event: self.translate(-1, 0))
+        self.root.bind('<Right>', lambda event: self.translate(1, 0))
         self.root.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
         self.root.mainloop()        
     
@@ -78,9 +78,9 @@ class Dots:
             self.paper.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale, (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale, fill = self.players_colors[point_type])
     
     
-    def draw_paper(self, x, y):
-        self.paper_coords[0] = x
-        self.paper_coords[1] = y
+    def draw(self, x, y):
+        self.position[0] = x
+        self.position[1] = y
         w = h =  640 // (self.scale * 16)
         for i in range(len(self.point_map[y:y + h:])):
             for j in range(len(self.point_map[i][x:x + w:])):
@@ -100,34 +100,42 @@ class Dots:
                 
     
     
-    def to_scale(self, zoom_k):
-        if zoom_k != 0 and zoom_k != 16:
+    def to_scale(self, scale):
+        if scale != 0 and scale != 16:
             self.paper.delete('all')
-            self.scale = zoom_k
-            self.draw_paper(self.paper_coords[0], self.paper_coords[1])    
+            self.scale = scale
+            self.draw(self.position[0], self.position[1])    
     
     
-    def move_screen(self, x, y):
-        if self.paper_coords[1] + y <= 0:
+    def translate(self, x, y):
+        while self.position[1] + y <= 0:
             self.point_map.insert(0, [0] * len(self.point_map[0]))
-            self.paper_coords[1] += 1
-            self.zero_move[1] += 1
-        if self.paper_coords[0] + x <= 0:
+            self.position[1] += 1
+            self.origin[1] += 1
+            print(1)
+        while self.position[0] + x <= 0:
             for i in range(len(self.point_map)):
                 self.point_map[i].insert(0, 0)
-            self.paper_coords[0] += 1
-            self.zero_move[0] += 1
+            self.position[0] += 1
+            self.origin[0] += 1
+            print(3)
+        while self.position[1] + y + 80 // self.scale >= len(self.point_map):
+            self.point_map.append([0] * len(self.point_map[0]))
+        while self.position[0] + x + 80 // self.scale >= len(self.point_map[0]):
+            for i in range(len(self.point_map)):
+                self.point_map[i].append(0)
+        print(self.position)
         self.paper.delete('all')
-        self.draw_paper(self.paper_coords[0] + x, self.paper_coords[1] + y)
+        self.draw(self.position[0] + x, self.position[1] + y)
     
     
     def create_point(self, x, y):
-        x ,y = x // (16 * self.scale) + self.paper_coords[0], y // (16 * self.scale) + self.paper_coords[1]
+        x ,y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
         if self.point_map[y][x] == 0:
             self.point_map[y][x] = self.player_how_turn
            # print(have_points_connect((x, y), (x, y)))
             self.paper.delete('all')
-            self.draw_paper(self.paper_coords[0], self.paper_coords[1])
+            self.draw(self.position[0], self.position[1])
             if self.player_how_turn == 1:
                 self.player_how_turn = 2
             else:
