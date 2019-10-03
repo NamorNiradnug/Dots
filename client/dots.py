@@ -112,19 +112,16 @@ class Dots:
             self.point_map.insert(0, [0] * len(self.point_map[0]))
             self.position[1] += 1
             self.origin[1] += 1
-            print(1)
         while self.position[0] + x <= 0:
             for i in range(len(self.point_map)):
                 self.point_map[i].insert(0, 0)
             self.position[0] += 1
             self.origin[0] += 1
-            print(3)
         while self.position[1] + y + 80 // self.scale >= len(self.point_map):
             self.point_map.append([0] * len(self.point_map[0]))
         while self.position[0] + x + 80 // self.scale >= len(self.point_map[0]):
             for i in range(len(self.point_map)):
                 self.point_map[i].append(0)
-        print(self.position)
         self.paper.delete('all')
         self.draw(self.position[0] + x, self.position[1] + y)
     
