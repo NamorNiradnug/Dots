@@ -9,6 +9,7 @@ public class Game {
     @Contract(pure = true)
     public Game(Player player) {
         player1 = player;
+        player1.setGame(this);
     }
 
     public boolean isFull() {
@@ -22,6 +23,7 @@ public class Game {
         turn = Math.random() * 2 >= 1;
         player1.found(player2, turn);
         player2.found(player1, !turn);
+        player2.setGame(this);
     }
 
     public void stop() {
