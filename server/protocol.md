@@ -4,13 +4,13 @@
         byte isTrue:
             0 -> false
             ? -> true
-    
+
     char:
         byte data
-    
+
     int:
         byte[4] bytes
-    
+
     String:
         byte length
         char[length] chars
@@ -24,26 +24,26 @@
 ## Packet types
     -ID- NAME:
         PAYLOAD             - DESCRIPTION (DIRECTION)
-    
+
     0x00 FIND:
         String nickname     - the sender's nickname (serverbound)
                             - the other player's nickname (clientbound)
         boolean playFirst   - wether the receiver plays first (clientbound)
-    
+
     0x01 PLAY:
         int x, y            - coordinates of the sender's move (serverbound)
                             - coordinates of the other player's move (clientbound)
-    
+
     0x04 TIE
-    
+
     0x05 SURRENDER
-    
+
     0x07 END:
         boolean win         - wether the receiver won (clientbound)
-    
+
     0x7F CONFIRM:
         boolean success     - wether the operation succeeded (both)
-    
+
     0xFF ERROR:
         String reason       - reason for the error (clientbound)
 
