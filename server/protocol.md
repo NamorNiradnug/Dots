@@ -1,4 +1,5 @@
 # Dots Net Protocol Specification
+Port: `5722`
 ## Data types
     boolean:
         byte isTrue:

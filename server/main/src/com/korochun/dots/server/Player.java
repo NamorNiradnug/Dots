@@ -1,66 +1,57 @@
 package com.korochun.dots.server;
 
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+import java.util.Arrays;
 
-public class Player implements Runnable {
-    public static final byte FIND = 0x00;
-    public static final byte FOUND = 0x01;
-    public static final byte PLAY = 0x02;
-    public static final byte TIE = 0x04;
-    public static final byte SURRENDER = 0x05;
-    public static final byte END = 0x07;
-    public static final byte CONFIRM = 0x7F;
-    public static final byte ERROR = (byte) 0xFF;
-
-    private Game game;
+public class Player extends Thread {
     private Socket socket;
-    private String name;
-
-    private volatile boolean started = false, myTurn, ended = false;
 
     @Contract(pure = true)
     public Player(Socket socket) {
         this.socket = socket;
-        new Thread(this).start();
+        this.start();
     }
 
+    @Override
     public void run() {
         try {
-            InputStream input = socket.getInputStream();
-            while (!ended) {
-                byte id = (byte) input.read();
-                switch (id) {
-                    case FIND:
-
-                }
+            while (true) {
+                this.receive();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public void found(@NotNull Player player, boolean myTurn) {
-        this.myTurn = myTurn;
-        this.send(FOUND, player.name, (byte) (myTurn ? 1 : 0));
-    }
-
-    private void send(byte id, Object... payload) {
-        socket.getOutputStream().write();
-    }
-
-    public void end() {
-        ended = true;
-        while (!started) {
-
+    private synchronized void receive() throws IOException {
+        InputStream in = this.socket.getInputStream();
+        int packetType = -1, length = -1, i = -1, last = -1;
+        byte[] payload = null;
+        while (last != 0) {
+            last = in.read();
+            if (last != -1) {
+                if (packetType == -1) {
+                    packetType = last;
+                } else if (i == -1) {
+                    length = last;
+                    payload = new byte[length];
+                    i = 0;
+                } else {
+                    if (i < length && last != 0) {
+                        payload[i] = (byte) last;
+                    }
+                    i++;
+                }
+            }
         }
-    }
-
-    public void setGame(Game game) {
-        this.game = game;
+        if (i > length) {
+            socket.close();
+            throw new IOException("Payload longer than expected! Expected " + length + " bytes, got " + (i + 1) + " bytes");
+        }
+        System.out.println("Packet type: " + packetType + "\nPayload: " + Arrays.toString(payload));
     }
 }

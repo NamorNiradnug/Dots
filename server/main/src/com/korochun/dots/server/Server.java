@@ -2,34 +2,18 @@ package com.korochun.dots.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.ArrayList;
 
-public class Server implements Runnable {
-    private ArrayList<Game> games = new ArrayList<>();
+public class Server {
 
     public static void main(String[] args) throws IOException {
         new Server().start();
     }
 
     private void start() throws IOException {
-        Runtime.getRuntime().addShutdownHook(new Thread(this));
-        ServerSocket socket = new ServerSocket(57922);
-        //noinspection InfiniteLoopStatement
+        ServerSocket server = new ServerSocket(5722);
         while (true) {
-            Player player = new Player(socket.accept());
-            if (!games.isEmpty()) {
-                Game game = games.get(games.size() - 1);
-                if (!game.isFull()) {
-                    game.addPlayer(player);
-                    continue;
-                }
-            }
-            games.add(new Game(player));
+            Player player = new Player(server.accept());
+            System.out.println("Incoming connection!");
         }
-    }
-
-    public void run() {
-        for (Game game : games)
-            game.stop();
     }
 }
