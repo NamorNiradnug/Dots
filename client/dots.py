@@ -55,6 +55,10 @@ class Dots:
                        used.count((i, position)) == 0 \
                        and open_p.count((position, i)) == 0: #and open_p.count((i, position)) == 0:
                         open_p += [(position,  i)]
+        for i in ((point[0], point[1] - 1), (point[0] + 1, point[1]),
+                 (point[0], point[1] + 1), (point[0] - 1, point[1])):
+            if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]:
+                self.tracks.update({(point, i)})
 
 
     def draw_point(self, point_type, x, y):
@@ -74,29 +78,30 @@ class Dots:
         for i in range(len(self.points[y:y + h])):
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
-        for i in range(len(self.points[y:y + h])):
-            for j in range(len(self.points[i][x:x + w])):
-                if 0 <= y and y + h < len(self.points) and 0 <= i < len(self.points[y:y + h]) and 0 <= x and x + w < len(
-                        self.points[y:y + h][i]) and 0 <= j < len(self.points[y:y + h][i][x:x + w]):
-                    if j + 1 < len(self.points[y:y + h][i][x:x + w]) and self.points[y:y + h][i][x:x + w][j] == \
-                            self.points[y:y + h][i][x:x + w][j + 1] > 0:
-                        self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
-                                                (j * 16 + 24) * self.scale, (i * 16 + 8) * self.scale,
-                                            fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
-                                                width=2 * self.scale)
-                    if i + 1 < len(self.points[y:y + h]) and self.points[y:y + h][i][x:x + w][j] == \
-                            self.points[y:y + h][i + 1][x:x + w][j] > 0:
-                        self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
-                                                (j * 16 + 8) * self.scale, (i * 16 + 24) * self.scale,
-                                                fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
-                                                width=2 * self.scale)
+    #    for i in range(len(self.points[y:y + h])):
+    #        for j in range(len(self.points[i][x:x + w])):
+    #            if 0 <= y and y + h < len(self.points) and 0 <= i < len(self.points[y:y + h]) and 0 <= x and x + w < len(
+    #                    self.points[y:y + h][i]) and 0 <= j < len(self.points[y:y + h][i][x:x + w]):
+    #                if j + 1 < len(self.points[y:y + h][i][x:x + w]) and self.points[y:y + h][i][x:x + w][j] == \
+    #                        self.points[y:y + h][i][x:x + w][j + 1] > 0:
+    #                    self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
+    #                                            (j * 16 + 24) * self.scale, (i * 16 + 8) * self.scale,
+    #                                        fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
+    #                                            width=2 * self.scale)
+    #                if i + 1 < len(self.points[y:y + h]) and self.points[y:y + h][i][x:x + w][j] == \
+    #                        self.points[y:y + h][i + 1][x:x + w][j] > 0:
+    #                    self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
+    #                                            (j * 16 + 8) * self.scale, (i * 16 + 24) * self.scale,
+    #                                            fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
+    #                                            width=2 * self.scale)
         for i in self.tracks:
             if i != None:
+                print(i)
                 if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and \
                    x - 1 <= i[1][0] <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
-                    self.canvas.create_line((i[0][0] * 16 + 8) * self.scale, (i[0][1] * 16 + 8) * self.scale, 
-                                            (i[1][0] * 16 + 8) * self.scale, (i[1][0] * 16 + 8) * self.scale,
-                                            fill=self.colors[self.points[i[0][1]][i[0][1]]], 
+                    self.canvas.create_line((i[0][0] * 16 - 8) * self.scale, (i[0][1] * 16 - 8) * self.scale, 
+                                            (i[1][0] * 16 - 8) * self.scale, (i[1][1] * 16 - 8) * self.scale,
+                                            fill=self.colors[self.points[i[0][0]][i[0][1]]], 
                                             width=2 * self.scale)
 
     def set_scale(self, scale):
