@@ -5,7 +5,7 @@ class Dots:
     def __init__(self):
         self.points = [[0] * 100 for __ in range(100)]
         self.colors = [0, '#2D2', 'blue']
-        self.tracks = {None}
+        self.tracks = {}
 
         self.is_greens_turn = 1
         self.scale = 2
@@ -25,17 +25,23 @@ class Dots:
         self.root.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
         self.root.mainloop()
 
+    @staticmethod
+    def get_adjacent(point):
+        return ((point[0], point[1] - 1), (point[0] + 1, point[1]),
+                (point[0], point[1] + 1), (point[0] - 1, point[1]))
+
+    @staticmethod
+    def get_surrounding(point):
+        return Dots.get_adjacent(point) + ((point[0] + 1, point[1] - 1), (point[0] + 1, point[1] + 1),
+                                           (point[0] - 1, point[1] + 1), (point[0] - 1, point[1] - 1))
+
     def do_connect(self, point):
         print(0)
         open_p = []
         used = []
-        for i in ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
-                  (point[0] + 1, point[1]),(point[0] + 1, point[1] + 1),
-                  (point[0], point[1] + 1),(point[0] - 1, point[1] + 1),
-                  (point[0] - 1, point[1]),(point[0] - 1, point[1] - 1)):
+        for i in Dots.get_surrounding(point):
             if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]:
-                #print(i)
-                open_p += [(point,  i)]
+                open_p += [(point, i)]
                 print(open_p)
         while len(open_p) > 0:
             position = open_p[-1][1]
@@ -45,21 +51,16 @@ class Dots:
             if position == point:
                 print(1)
                 self.tracks.update(set(used))
-                #used.clear()
             else:
-                for i in ((position[0], position[1] - 1), (position[0] + 1, position[1] - 1),
-                          (position[0] + 1, position[1]),(position[0] + 1, position[1] + 1),
-                          (position[0], position[1] + 1),(position[0] - 1, position[1] + 1),
-                          (position[0] - 1, position[1]),(position[0] - 1, position[1] - 1)):
-                    if self.points[i[1]][i[0]] == self.points[position[1]][position[0]] and used.count((position, i)) == 0 and \
-                       used.count((i, position)) == 0 \
-                       and open_p.count((position, i)) == 0: #and open_p.count((i, position)) == 0:
-                        open_p += [(position,  i)]
-        for i in ((point[0], point[1] - 1), (point[0] + 1, point[1]),
-                 (point[0], point[1] + 1), (point[0] - 1, point[1])):
+                for i in Dots.get_surrounding(point):
+                    if self.points[i[1]][i[0]] == self.points[position[1]][position[0]] and used.count(
+                            (position, i)) == 0 and \
+                            used.count((i, position)) == 0 \
+                            and open_p.count((position, i)) == 0:
+                        open_p += [(position, i)]
+        for i in Dots.get_adjacent(point):
             if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]:
                 self.tracks.update({(point, i)})
-
 
     def draw_point(self, point_type, x, y):
         self.canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
@@ -78,30 +79,14 @@ class Dots:
         for i in range(len(self.points[y:y + h])):
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
-    #    for i in range(len(self.points[y:y + h])):
-    #        for j in range(len(self.points[i][x:x + w])):
-    #            if 0 <= y and y + h < len(self.points) and 0 <= i < len(self.points[y:y + h]) and 0 <= x and x + w < len(
-    #                    self.points[y:y + h][i]) and 0 <= j < len(self.points[y:y + h][i][x:x + w]):
-    #                if j + 1 < len(self.points[y:y + h][i][x:x + w]) and self.points[y:y + h][i][x:x + w][j] == \
-    #                        self.points[y:y + h][i][x:x + w][j + 1] > 0:
-    #                    self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
-    #                                            (j * 16 + 24) * self.scale, (i * 16 + 8) * self.scale,
-    #                                        fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
-    #                                            width=2 * self.scale)
-    #                if i + 1 < len(self.points[y:y + h]) and self.points[y:y + h][i][x:x + w][j] == \
-    #                        self.points[y:y + h][i + 1][x:x + w][j] > 0:
-    #                    self.canvas.create_line((j * 16 + 8) * self.scale, (i * 16 + 8) * self.scale,
-    #                                            (j * 16 + 8) * self.scale, (i * 16 + 24) * self.scale,
-    #                                            fill=self.colors[self.points[y:y + h][i][x:x + w][j]],
-    #                                            width=2 * self.scale)
         for i in self.tracks:
-            if i != None:
+            if i is not None:
                 print(i)
-                if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and \
-                   x - 1 <= i[1][0] <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
-                    self.canvas.create_line((i[0][0] * 16 - 8) * self.scale, (i[0][1] * 16 - 8) * self.scale, 
+                if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
+                        <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
+                    self.canvas.create_line((i[0][0] * 16 - 8) * self.scale, (i[0][1] * 16 - 8) * self.scale,
                                             (i[1][0] * 16 - 8) * self.scale, (i[1][1] * 16 - 8) * self.scale,
-                                            fill=self.colors[self.points[i[0][0]][i[0][1]]], 
+                                            fill=self.colors[self.points[i[0][0]][i[0][1]]],
                                             width=2 * self.scale)
 
     def set_scale(self, scale):
