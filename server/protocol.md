@@ -3,18 +3,20 @@ Port: `5722`
 ## Data types
     boolean:
         byte isTrue:
-            0 -> false
-            ? -> true
+            isTrue != 0
 
     char:
-        byte data
+        byte[2] data:
+            chr((byte[0] << 8) | byte[1])
 
     int:
-        byte[4] bytes
+        byte[4] bytes:
+            (byte[0] << 24) | (byte[1] << 16) | (byte[2] << 8) | byte[3]
 
     String:
         byte length
-        char[length] chars
+        char[length] chars:
+            ''.join(chars)
 
 ## Packet structure
     byte type
