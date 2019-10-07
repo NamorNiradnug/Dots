@@ -1,19 +1,34 @@
-from tkinter import Tk, Canvas
+from tkinter import Tk, Canvas, Button, Radiobutton
 
+root = Tk()
+
+class StartMenu:
+    def __init__(self, _root_):
+        self.root = _root_
+        self.canvas = Canvas(root, width=640, height=640)
+        self.startbutton = Button(self.canvas, text='Start Game')
+        self.canvas.pack()
+        self.startbutton.pack()
+        self.startbutton['command'] = self.startgame
+        
+    def startgame(self):
+        Dots(self.root, 'green', 'red')
+        
 
 class Dots:
-    def __init__(self):
+    def __init__(self, _root_, color1, color2):
         self.points = [[0] * 100 for __ in range(100)]
-        self.colors = [0, '#2D2', 'blue']
+        self.colors = [0, color1, color2]
         self.tracks = set()
 
         self.is_greens_turn = 1
         self.scale = 2
         self.position = [0, 0]
         self.origin = [0, 0]
-        self.root = Tk()
-        self.canvas = Canvas(self.root, width=160 * 4, height=4 * 160)
+        self.root = _root_
+        self.canvas = Canvas(self.root, width=640, height=640)
         self.canvas.pack()
+        #self.settings_button = 
 
         self.draw(1, 1)
         self.root.bind('<Control-=>', lambda event: self.set_scale(self.scale * 2))
@@ -23,7 +38,6 @@ class Dots:
         self.root.bind('<Left>', lambda event: self.translate(-1, 0))
         self.root.bind('<Right>', lambda event: self.translate(1, 0))
         self.root.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
-        self.root.mainloop()
 
     @staticmethod
     def get_adjacent(point):
@@ -124,5 +138,5 @@ class Dots:
             else:
                 self.is_greens_turn = 1
 
-
-Dots()
+StartMenu(root)
+root.mainloop()
