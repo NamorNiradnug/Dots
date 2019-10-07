@@ -97,11 +97,13 @@ class Dots:
             self.points.insert(0, [0] * len(self.points[0]))
             self.position[1] += 1
             self.origin[1] += 1
+            self.tracks = set([((i[0][0], i[0][1] + 1), (i[1][0], i[1][1] + 1)) for i in self.tracks])
         while self.position[0] + x <= 0:
             for i in range(len(self.points)):
                 self.points[i].insert(0, 0)
             self.position[0] += 1
             self.origin[0] += 1
+            self.tracks = set([((i[0][0] + 1, i[0][1]), (i[1][0] + 1, i[1][1])) for i in self.tracks])
         while self.position[1] + y + 80 // self.scale >= len(self.points):
             self.points.append([0] * len(self.points[0]))
         while self.position[0] + x + 80 // self.scale >= len(self.points[0]):
