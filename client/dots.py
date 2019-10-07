@@ -32,27 +32,25 @@ class Dots:
 
     @staticmethod
     def get_surrounding(point):
-        return Dots.get_adjacent(point) + ((point[0] + 1, point[1] - 1), (point[0] + 1, point[1] + 1),
-                                           (point[0] - 1, point[1] + 1), (point[0] - 1, point[1] - 1))
+        return  ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
+                  (point[0] + 1, point[1]),(point[0] + 1, point[1] + 1),
+                  (point[0], point[1] + 1),(point[0] - 1, point[1] + 1),
+                  (point[0] - 1, point[1]),(point[0] - 1, point[1] - 1))
 
     def do_connect(self, point):
-        print(0)
         open_p = []
         used = []
         for i in Dots.get_surrounding(point):
             if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]:
                 open_p += [(point, i)]
-                print(open_p)
         while len(open_p) > 0:
             position = open_p[-1][1]
-            print(position)
             used += open_p[-1:]
             open_p.pop()
             if position == point:
-                print(1)
                 self.tracks.update(set(used))
             else:
-                for i in Dots.get_surrounding(point):
+                for i in Dots.get_surrounding(position):
                     if self.points[i[1]][i[0]] == self.points[position[1]][position[0]] and used.count(
                             (position, i)) == 0 and \
                             used.count((i, position)) == 0 \
@@ -80,14 +78,13 @@ class Dots:
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
         for i in self.tracks:
-            if i is not None:
-                print(i)
-                if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
-                        <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
-                    self.canvas.create_line((i[0][0] * 16 - 8) * self.scale, (i[0][1] * 16 - 8) * self.scale,
-                                            (i[1][0] * 16 - 8) * self.scale, (i[1][1] * 16 - 8) * self.scale,
-                                            fill=self.colors[self.points[i[0][0]][i[0][1]]],
-                                            width=2 * self.scale)
+            if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
+               <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
+                self.canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale, ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
+                                        ((i[1][0] - self.position[0]) * 16 + 8) * self.scale, ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
+                                        fill=self.colors[self.points[i[0][1]][i[0][0]]],
+                                        #fill='red', 
+                                        width=2 * self.scale)
 
     def set_scale(self, scale):
         if scale != 0 and scale != 16:
@@ -118,7 +115,6 @@ class Dots:
         if self.points[y][x] == 0:
             self.points[y][x] = self.is_greens_turn
             self.do_connect((x, y))
-            print(self.tracks)
             self.canvas.delete('all')
             self.draw(self.position[0], self.position[1])
             if self.is_greens_turn == 1:
