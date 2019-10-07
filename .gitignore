@@ -1,0 +1,8 @@
+# Production
+server/out
+
+# Logs
+server/logs
+
+# .DS_Store
+.DS_Store
