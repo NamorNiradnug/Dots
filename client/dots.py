@@ -5,7 +5,7 @@ class Dots:
     def __init__(self):
         self.points = [[0] * 100 for __ in range(100)]
         self.colors = [0, '#2D2', 'blue']
-        self.tracks = {}
+        self.tracks = set()
 
         self.is_greens_turn = 1
         self.scale = 2
