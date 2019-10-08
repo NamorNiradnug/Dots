@@ -1,7 +1,7 @@
 from tkinter import Tk, Canvas, Button
 
 root = Tk()
-root.resizable(False, False)
+root.title('Dots')
 canvas = Canvas(width=640, height=640)
 
 
@@ -141,4 +141,5 @@ class Dots:
 
 
 StartMenu()
+root.attributes('-fullscreen', True)  # How can I turn off 'Caps Lock'?
 root.mainloop()
