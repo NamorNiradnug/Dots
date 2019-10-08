@@ -8,15 +8,21 @@ canvas = Canvas(width=640, height=640)
 class StartMenu:
     def __init__(self):
         canvas.pack_forget()
-        self.start_button = Button(text='Start Game')
+        self.start_button = Button(root, text='Start Dots', width=100, height=40, bg='orange')
         self.start_button.pack()
         self.start_button['command'] = self.start_game
+        self.close_button = Button(root, text='Quit', command=StartMenu.quit)
+        self.close_button.pack()
 
     def start_game(self):
-        canvas.pack()
         self.start_button.destroy()
         root.geometry("640x640")
+        canvas.place(x=0,y=0, anchor='nw')
         Dots('#20D020', 'blue')
+    
+    @staticmethod
+    def quit():
+        root.destroy()
 
 
 class Dots:
@@ -37,7 +43,7 @@ class Dots:
         root.bind('<Down>', lambda event: self.translate(0, 1))
         root.bind('<Left>', lambda event: self.translate(-1, 0))
         root.bind('<Right>', lambda event: self.translate(1, 0))
-        root.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
+        canvas.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
 
     @staticmethod
     def get_adjacent(point: (int, int)):
