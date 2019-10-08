@@ -8,16 +8,17 @@ canvas = Canvas(width=640, height=640)
 class StartMenu:
     def __init__(self):
         canvas.pack_forget()
-        self.start_button = Button(root, text='Start Dots', width=100, height=40, bg='orange')
+        self.start_canvas = Canvas(root, width=640, height=640, bg='blue')
+        self.start_canvas.pack()
+        self.start_button = Button(self.start_canvas, text='Start Dots', width=25, height=10, bg='orange')
         self.start_button.pack()
         self.start_button['command'] = self.start_game
-        self.close_button = Button(root, text='Quit', command=StartMenu.quit)
+        self.close_button = Button(self.start_canvas, text='Quit', command=StartMenu.quit)
         self.close_button.pack()
 
     def start_game(self):
-        self.start_button.destroy()
-        root.geometry("640x640")
-        canvas.place(x=0,y=0, anchor='nw')
+        self.start_canvas.destroy()
+        canvas.place(relx=0.5, rely=0, anchor='n')
         Dots('#20D020', 'blue')
     
     @staticmethod
