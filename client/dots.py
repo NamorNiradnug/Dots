@@ -11,7 +11,7 @@ class Resources:
     resources = Path('resources')
     settings_texture = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
     singleplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
-    multiplayer_texture = ImageTk.PhotoImage(Image.open( resources / 'multiplayer.png'))
+    multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
     game_menu_texture = ImageTk.PhotoImage(Image.open(resources / 'game_menu.png'))
 
 
@@ -19,17 +19,16 @@ class StartMenu:
     def __init__(self):
         canvas.place_forget()
         self.start_canvas = Canvas(root, width=640, height=640, bg='#20B2AA')
-
         self.start_canvas.create_image(96, 220, image=Resources.singleplayer_texture,
                                            anchor='center', tag='singleplayer')
         self.start_canvas.create_image(320, 220, image=Resources.multiplayer_texture,
-                                           anchor='center', tag='multiplayer')        
+                                           anchor='center', tag='multiplayer')
         self.start_canvas.create_image(480, 360, image=Resources.settings_texture,
-                                           anchor='center', tag='settings')         
+                                           anchor='center', tag='settings')
         Button(self.start_canvas, text='QUIT', command=StartMenu.quit).place(x=320, y=600)
         self.start_canvas.pack()
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
-        
+
     def start_game(self):
         self.start_canvas.destroy()
         canvas.place(relx=0.5, rely=0, anchor='n')
@@ -47,18 +46,17 @@ class GameMenu:
                                                     anchor='nw')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('Escape', lambda event: self.open_game_menu())
-    
+
     def open_game_menu(self):
         self.game_menu_canvas.place(x=320, y=320, anchor='center')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
         root.bind('Escape', lambda event: self.close_game_menu())
-        
+
     def close_game_menu(self):
         self.game_menu_canvas.place_forget()
-        print(1)
         canvas.tag_bind('settings_game', '<Button-1>', lambda event: self.open_game_menu())
-        root.bind('Escape', lambda event: self.open_game_menu())        
-                
+        root.bind('Escape', lambda event: self.open_game_menu())
+
 
 class Dots:
     def __init__(self, color1: str, color2: str):
