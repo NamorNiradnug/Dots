@@ -19,10 +19,10 @@ class StartMenu:
         canvas.place_forget()
         self.start_canvas = Canvas(width=640, height=640, bg='#20B2AA')
 
-        self.start_canvas.create_image(96, 220, image=Resources.singleplayer,
-                                           anchor='center', tag='singleplayer')
-        self.start_canvas.create_image(320, 220, image=Resources.multiplayer,
-                                           anchor='center', tag='multiplayer')        
+        self.start_canvas.create_image(96, 220, image=Resources.singleplayer_texture,
+                                       anchor='center', tag='singleplayer')
+        self.start_canvas.create_image(320, 220, image=Resources.multiplayer_texture,
+                                       anchor='center', tag='multiplayer')
         Button(self.start_canvas, text='QUIT', command=StartMenu.quit).place(x=320, y=600)
         self.start_canvas.pack()
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
