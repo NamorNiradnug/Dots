@@ -4,5 +4,8 @@ server/out
 # Logs
 server/logs
 
+# server/.idea/.gitignore
+server/.idea/.gitignore
+
 # .DS_Store
 .DS_Store

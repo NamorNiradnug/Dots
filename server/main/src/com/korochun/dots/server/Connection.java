@@ -3,7 +3,9 @@ package com.korochun.dots.server;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 
 public class Connection extends Thread {
@@ -26,6 +28,32 @@ public class Connection extends Thread {
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
         this.start();
+    }
+
+    private void writeString(@NotNull String string) throws IOException {
+        out.writeByte(string.length());
+        for (char c : string.toCharArray()) {
+            out.writeChar(c);
+        }
+    }
+
+    private void find(@NotNull String nickname, boolean myTurn) throws IOException {
+        out.writeByte(FIND);
+        out.writeInt(nickname.length() + 2);
+        writeString(nickname);
+        out.writeBoolean(myTurn);
+    }
+
+    private void confirm(boolean b) throws IOException {
+        out.writeByte(CONFIRM);
+        out.writeInt(1);
+        out.writeBoolean(b);
+    }
+
+    private void error(@NotNull String message) throws IOException {
+        out.writeByte(ERROR);
+        out.writeInt(message.length() + 1);
+        writeString(message);
     }
 
     @Override
@@ -63,21 +91,6 @@ public class Connection extends Thread {
             }
             state = 3;
         } catch (IOException ignored) {
-        }
-    }
-
-    private void confirm(boolean b) throws IOException {
-        out.writeByte(CONFIRM);
-        out.writeInt(1);
-        out.writeBoolean(b);
-    }
-
-    private void error(String message) throws IOException {
-        out.writeByte(ERROR);
-        out.writeInt(message.length() + 1);
-        out.writeByte(message.length());
-        for (char c : message.toCharArray()) {
-            out.writeChar(c);
         }
     }
 }

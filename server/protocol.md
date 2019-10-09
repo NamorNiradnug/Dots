@@ -22,7 +22,6 @@ Port: `5722`
     byte type
     int length
     byte[length] payload
-    byte zero = 0
 
 ## Packet types
     -ID- NAME:
