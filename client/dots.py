@@ -1,5 +1,6 @@
 from tkinter import Tk, Canvas, Button
 from PIL import Image, ImageTk
+from pathlib import Path
 
 root = Tk()
 root.title('Dots')
@@ -7,21 +8,20 @@ canvas = Canvas(width=640, height=640)
 
 
 class Resources:
-    settings = ImageTk.PhotoImage(Image.open('resources/settings.png'))
-    single_game = ImageTk.PhotoImage(Image.open('resources/singleplayer.png'))
-    online_game = ImageTk.PhotoImage(Image.open('resources/multiplayer.png'))
+    resources = Path('resources')
+    settings_texture = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
+    singleplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
+    multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
 
 
 class StartMenu:
     def __init__(self):
         canvas.place_forget()
-        self.start_canvas = Canvas(root, width=640, height=640, bg='#20B2AA')
+        self.start_canvas = Canvas(width=640, height=640, bg='#20B2AA')
 
-        self.start_canvas.create_image(320, 220, image=Resources.online_game,
-                                           anchor='center')
+        self.start_canvas.create_image(320, 220, image=Resources.multiplayer_texture, anchor='center')
         Button(self.start_canvas, text='QUIT', command=StartMenu.quit).place(x=320, y=600)
         self.start_canvas.pack()
-        
 
     def start_game(self):
         self.start_canvas.destroy()
