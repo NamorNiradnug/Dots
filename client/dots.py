@@ -6,29 +6,27 @@ root.title('Dots')
 canvas = Canvas(width=640, height=640)
 
 
-class GameImages:
-    settings = Image.open('Images\\settings.png')
-    single_game = Image.open('Images\\single_game.png')
-    online_game = Image.open('Images\\online_game.png')    
-        
+class Resources:
+    settings = Image.open('resources/settings.png')
+    single_game = Image.open('resources/singleplayer.png')
+    online_game = Image.open('resources/multiplayer.png')
+
 
 class StartMenu:
     def __init__(self):
         canvas.pack_forget()
         self.start_canvas = Canvas(root, width=640, height=640)
-     
-        self.start_online_button = self.start_canvas.create_image(0, 0, image=ImageTk.PhotoImage(Image.open('Images\\settings.png')), 
-                                                                  anchor='center')
+
+        self.start_online_button =\
+            self.start_canvas.create_image(0, 0, image=ImageTk.PhotoImage(Image.open('resources/settings.png')),
+                                           anchor='center')
         self.start_canvas.pack()
-        #self.start_canvas.tag_bind(self.start_online_button, '<Button-1>', lambda event: self.start_game)
-        #self.close_button = Button(self.start_canvas, text='Quit', command=StartMenu.quit)
-        #self.close_button.pack()
 
     def start_game(self):
         self.start_canvas.destroy()
         canvas.place(relx=0.5, rely=0, anchor='n')
         Dots('#20D020', 'blue')
-    
+
     @staticmethod
     def quit():
         root.destroy()
@@ -156,5 +154,5 @@ class Dots:
 
 
 StartMenu()
-root.attributes('-fullscreen', True)  # How can I turn off 'Caps Lock'?
+root.attributes('-fullscreen', True)
 root.mainloop()
