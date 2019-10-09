@@ -3,6 +3,7 @@ from PIL import Image, ImageTk
 
 root = Tk()
 root.title('Dots')
+canvas = Canvas(width=640, height=640)
 
 
 class Resources:
@@ -10,11 +11,13 @@ class Resources:
     single_game = Image.open('resources/singleplayer.png')
     online_game = Image.open('resources/multiplayer.png')
 
+
 class StartMenu:
     def __init__(self):
-        self.start_canvas = Canvas(root, width=640, height=640)
+        canvas.place_forget()
+        self.start_canvas = Canvas(width=640, height=640)
 
-        self.start_online_button =\
+        self.start_online_button = \
             self.start_canvas.create_image(0, 0, image=ImageTk.PhotoImage(Image.open('resources/settings.png')),
                                            anchor='center')
 
@@ -22,6 +25,7 @@ class StartMenu:
 
     def start_game(self):
         self.start_canvas.destroy()
+        canvas.place(relx=0.5, rely=0, anchor='n')
         Dots('#20D020', 'blue')
 
     @staticmethod
@@ -31,7 +35,6 @@ class StartMenu:
 
 class Dots:
     def __init__(self, color1: str, color2: str):
-        self.canvas = Canvas(root, width=640, height=640)
         self.points = [[0] * 100 for _ in range(100)]
         self.colors = ["magenta", color1, color2]
         self.tracks = set()
@@ -48,7 +51,7 @@ class Dots:
         root.bind('<Down>', lambda event: self.translate(0, 1))
         root.bind('<Left>', lambda event: self.translate(-1, 0))
         root.bind('<Right>', lambda event: self.translate(1, 0))
-        self.canvas.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
+        canvas.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
 
     @staticmethod
     def get_adjacent(point: (int, int)):
@@ -86,12 +89,12 @@ class Dots:
                 self.tracks.update({(point, i)})
 
     def draw_point(self, point_type: int, x: int, y: int):
-        self.canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
+        canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
                            (x * 16 + 8) * self.scale, (y + 1) * self.scale * 16)
-        self.canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale,
+        canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale,
                            (x + 1) * self.scale * 16, (y * 16 + 8) * self.scale)
         if point_type != 0:
-            self.canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
+            canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
                                (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
                                fill=self.colors[point_type])
 
@@ -105,7 +108,7 @@ class Dots:
         for i in self.tracks:
             if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
                     <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
-                self.canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale,
+                canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale,
                                    ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
                                    ((i[1][0] - self.position[0]) * 16 + 8) * self.scale,
                                    ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
@@ -114,7 +117,7 @@ class Dots:
 
     def set_scale(self, scale: float):
         if scale != 0 and scale != 16:
-            self.canvas.delete('all')
+            canvas.delete('all')
             self.scale = scale
             self.draw(self.position[0], self.position[1])
 
@@ -135,7 +138,7 @@ class Dots:
         while self.position[0] + x + 80 // self.scale >= len(self.points[0]):
             for i in range(len(self.points)):
                 self.points[i].append(0)
-        self.canvas.delete('all')
+        canvas.delete('all')
         self.draw(self.position[0] + x, self.position[1] + y)
 
     def create_point(self, x: int, y: int):
@@ -143,7 +146,7 @@ class Dots:
         if self.points[y][x] == 0:
             self.points[y][x] = self.is_greens_turn
             self.do_connect((x, y))
-            self.canvas.delete('all')
+            canvas.delete('all')
             self.draw(self.position[0], self.position[1])
             if self.is_greens_turn == 1:
                 self.is_greens_turn = 2
