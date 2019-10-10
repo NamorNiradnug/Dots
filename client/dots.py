@@ -4,7 +4,7 @@ from pathlib import Path
 
 root = Tk()
 root.title('Dots')
-canvas = Canvas(width=640, height=640)
+canvas = Canvas()
 
 
 class Resources:
@@ -45,22 +45,30 @@ class GameMenu:
         self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture,
                                                     anchor='nw')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
-        root.bind('Escape', lambda event: self.open_game_menu())
+        root.bind('<Escape>', lambda event: self.open_game_menu())
 
     def open_game_menu(self):
-        self.game_menu_canvas.place(x=320, y=320, anchor='center')
+        self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
-        root.bind('Escape', lambda event: self.close_game_menu())
+        root.bind('<Escape>', lambda event: self.close_game_menu())
 
     def close_game_menu(self):
         self.game_menu_canvas.place_forget()
-        canvas.tag_bind('settings_game', '<Button-1>', lambda event: self.open_game_menu())
-        root.bind('Escape', lambda event: self.open_game_menu())
+        canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
+        root.bind('<Escape>', lambda event: self.open_game_menu())
+        
+    def redraw(self):
+        canvas.delete(self.game_menu_button)
+        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture,
+                                                    anchor='nw')
 
 
 class Dots:
-    def __init__(self, color1: str, color2: str):
-        GameMenu()
+    def __init__(self, color1: str, color2: str, width=root.winfo_screenwidth(), height=root.winfo_screenheight()):
+        self.menu = GameMenu()
+        self.height = height
+        self.width = width
+        canvas.config(width=self.width, height=self.height)
         self.points = [[0] * 100 for _ in range(100)]
         self.colors = ["magenta", color1, color2]
         self.tracks = set()
@@ -71,8 +79,7 @@ class Dots:
         self.origin = [0, 0]
 
         self.draw(1, 1)
-        root.bind('<Control-=>', lambda event: self.set_scale(self.scale * 2))
-        root.bind('<MouseWheel>', lambda event: self.set_scale(self.scale // 2))
+        root.bind('<MouseWheel>', lambda event: self.set_scale(event.delta))
         root.bind('<Up>', lambda event: self.translate(0, -1))
         root.bind('<Down>', lambda event: self.translate(0, 1))
         root.bind('<Left>', lambda event: self.translate(-1, 0))
@@ -127,7 +134,8 @@ class Dots:
     def draw(self, x: int, y: int):
         self.position[0] = x
         self.position[1] = y
-        w = h = 640 // (self.scale * 16)
+        w = self.width // (self.scale * 16)
+        h = self.height // (self.scale * 16)
         for i in range(len(self.points[y:y + h])):
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
@@ -140,8 +148,10 @@ class Dots:
                                    ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
                                    fill=self.colors[self.points[i[0][1]][i[0][0]]],
                                    width=2 * self.scale)
+        self.menu.redraw()
 
-    def set_scale(self, scale: float):
+    def set_scale(self, delta: int):
+        scale = int(self.scale * (2 * (delta // (abs(delta)))))
         if scale != 0 and scale != 16:
             canvas.delete('all')
             self.scale = scale
