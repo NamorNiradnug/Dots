@@ -56,7 +56,7 @@ class GameMenu:
         self.game_menu_canvas.place_forget()
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
-        
+
     def redraw(self):
         canvas.delete(self.game_menu_button)
         self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture,
@@ -64,7 +64,8 @@ class GameMenu:
 
 
 class Dots:
-    def __init__(self, color1: str, color2: str, width=root.winfo_screenwidth(), height=root.winfo_screenheight()):
+    def __init__(self, color1: str, color2: str, width: int = root.winfo_screenwidth(),
+                 height: int = root.winfo_screenheight()):
         self.menu = GameMenu()
         self.height = height
         self.width = width
