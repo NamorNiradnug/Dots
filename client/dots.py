@@ -13,6 +13,7 @@ class Resources:
     singleplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
     multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
     game_menu_texture = ImageTk.PhotoImage(Image.open(resources / 'menu_icon.png'))
+    localmultiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'localmultiplayer.png'))
 
 
 class StartMenu:
