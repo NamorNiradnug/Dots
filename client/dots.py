@@ -13,19 +13,20 @@ class Resources:
     singleplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
     multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
     game_menu_texture = ImageTk.PhotoImage(Image.open(resources / 'menu_icon.png'))
-    localmultiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'localmultiplayer.png'))
+    local_multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'local_multiplayer.png'))
 
 
 class StartMenu:
     def __init__(self):
         canvas.place_forget()
         self.start_canvas = Canvas(width=640, height=640, bg='#20B2AA')
-        self.start_canvas.create_image(96, 220, image=Resources.singleplayer_texture,
-                                       anchor='center', tag='singleplayer')
-        self.start_canvas.create_image(320, 220, image=Resources.multiplayer_texture,
-                                       anchor='center', tag='multiplayer')
-        self.start_canvas.create_image(480, 360, image=Resources.settings_texture,
-                                       anchor='center', tag='settings')
+
+        self.start_canvas.create_image(480, 360, image=Resources.settings_texture, anchor='center', tag='settings')
+        self.start_canvas.create_image(96, 220, image=Resources.singleplayer_texture, anchor='center',
+                                       tag='singleplayer')
+        self.start_canvas.create_image(320, 220, image=Resources.multiplayer_texture, anchor='center',
+                                       tag='multiplayer')
+
         Button(self.start_canvas, text='QUIT', command=StartMenu.quit).place(x=320, y=600)
         self.start_canvas.pack()
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
@@ -43,8 +44,7 @@ class StartMenu:
 class GameMenu:
     def __init__(self):
         self.game_menu_canvas = Canvas(width=320, height=640, bg='#20B2AA')
-        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture,
-                                                    anchor='nw')
+        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture, anchor='nw')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
@@ -60,8 +60,7 @@ class GameMenu:
 
     def redraw(self):
         canvas.delete(self.game_menu_button)
-        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture,
-                                                    anchor='nw')
+        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture, anchor='nw')
 
 
 class Dots:
@@ -148,8 +147,7 @@ class Dots:
                                    ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
                                    ((i[1][0] - self.position[0]) * 16 + 8) * self.scale,
                                    ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
-                                   fill=self.colors[self.points[i[0][1]][i[0][0]]],
-                                   width=2 * self.scale)
+                                   fill=self.colors[self.points[i[0][1]][i[0][0]]], width=2 * self.scale)
         self.menu.redraw()
 
     def set_scale(self, delta: int):
