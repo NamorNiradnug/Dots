@@ -1,3 +1,4 @@
+import os
 from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
@@ -6,9 +7,9 @@ root = Tk()
 root.title('Dots')
 canvas = Canvas()
 
-
 class Resources:
     resources = Path('resources')
+    colors = [ImageTk.PhotoImage(Image.open(i)) for i in os.listdir(resources / 'settings_colors')]
     settings_texture = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
     singleplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
     multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
@@ -17,6 +18,29 @@ class Resources:
     quit_texture = ImageTk.PhotoImage(Image.open(resources / 'quit.png'))
     item_texture = ImageTk.PhotoImage(Image.open(resources / 'dots_item.png'))
 
+class Settings:
+    def __init__(self):
+        self.colors = ['#20D020', 'blue']
+        self.fullscreen = False
+        self.sound_voice = 100
+       # self.music - random music
+       # self.turn_voice - random voice playing when players turn 
+        self.settings_canvas = Canvas(width=320, height=540)
+       # self.
+        self.settings_canvas.place_forget()
+        
+    def open_settings(self, master, x, y):
+        self.settings_canvas['master'] = master
+        self.settings_canvas.place(x, y)
+        
+    def close_settings(self):
+        self.settings_canvas.place_forget()
+    
+    def change_fullscreen(self):
+        self.fuulscreen = not self.fullscreen
+        root.atributes('-fullscreen', self.fullscreen)
+
+settings = Settings()
 
 class StartMenu:
     def __init__(self):
@@ -53,7 +77,7 @@ class StartMenu:
 
 class GameMenu:
     def __init__(self):
-        self.game_menu_canvas = Canvas(width=320, height=640, bg='#20B2AA')
+        self.game_menu_canvas = Canvas(width=320, height=540, bg='grey')
         self.game_menu_canvas.create_image(160, 500, image=Resources.quit_texture, anchor='center',
                                            tag='game_quit')
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: StartMenu.quit())  
@@ -77,7 +101,7 @@ class GameMenu:
 
 
 class Dots:
-    def __init__(self, color1: str, color2: str, width: int = root.winfo_screenwidth(),
+    def __init__(self, color1: str = settings.colors[0], color2: str = settings.colors[1], width: int = root.winfo_screenwidth(),
                  height: int = root.winfo_screenheight()):
         self.menu = GameMenu()
         self.height = height
@@ -216,5 +240,4 @@ class LocalMultiplayerDots(Dots):
 #class SingleplayerDots(Dots):
 
 StartMenu()
-root.attributes('-fullscreen', True)
 root.mainloop()
