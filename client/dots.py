@@ -3,63 +3,76 @@ from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
 
+# ======================================================================================================================
+# СНАЧАЛА геймплей, ЗАТЕМ интерфейс. ПОКА нет геймплея, НИКОМУ не будет интересен твой проект, и ты просто ЗАБРОСИШЬ
+# его!!!
+# ======================================================================================================================
+
 root = Tk()
 root.title('Dots')
 canvas = Canvas()
 
+
 class Resources:
     resources = Path('resources')
-    colors = [ImageTk.PhotoImage(Image.open(i)) for i in os.listdir(resources / 'settings_colors')]
-    settings_texture = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
-    singleplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
-    multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
-    game_menu_texture = ImageTk.PhotoImage(Image.open(resources / 'menu_icon.png'))
-    local_multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'local_multiplayer.png'))
-    quit_texture = ImageTk.PhotoImage(Image.open(resources / 'quit.png'))
-    item_texture = ImageTk.PhotoImage(Image.open(resources / 'dots_item.png'))
+
+    # Так делать НИ ЗА ЧТО НЕЛЬЗЯ. Ты МОГ БЫ просто рисовать разные цвета ткинтером, но вместо этого ты ЗАСОРЯЕШЬ память
+    # изображениями с одним и тем же содержимым, но разного цвета. ЗАЧЕМ?
+    colors = [ImageTk.PhotoImage(Image.open(img)) for img in (resources / 'dot_colors').glob('*.png')]
+
+    settings_button = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
+    singleplayer_button = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
+    multiplayer_button = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
+    home_button = ImageTk.PhotoImage(Image.open(resources / 'home.png'))
+    local_multiplayer_button = ImageTk.PhotoImage(Image.open(resources / 'local_multiplayer.png'))
+    quit_button = ImageTk.PhotoImage(Image.open(resources / 'quit.png'))
+    logo_texture = ImageTk.PhotoImage(Image.open(resources / 'menu_logo.png'))
+
 
 class Settings:
     def __init__(self):
         self.colors = ['#20D020', 'blue']
         self.fullscreen = False
         self.sound_voice = 100
-       # self.music - random music
-       # self.turn_voice - random voice playing when players turn 
         self.settings_canvas = Canvas(width=320, height=540)
-       # self.
         self.settings_canvas.place_forget()
-        
+
     def open_settings(self, master, x, y):
         self.settings_canvas['master'] = master
-        self.settings_canvas.place(x, y)
-        
+        self.settings_canvas.place((x, y))
+
     def close_settings(self):
         self.settings_canvas.place_forget()
-    
+
     def change_fullscreen(self):
-        self.fuulscreen = not self.fullscreen
+        self.fullscreen = not self.fullscreen
         root.atributes('-fullscreen', self.fullscreen)
+
 
 settings = Settings()
 
-class StartMenu:
+
+class MainMenu:
     def __init__(self):
         canvas.place_forget()
+
+        # Этот серый ОЧЕНЬ уродлив. Тебе нужен цвет НЕ из стандартного набора цветов ткинтера.
         self.start_canvas = Canvas(width=640, height=640, bg='grey')
-        self.start_canvas.create_image(0, 10, image=Resources.item_texture, anchor='nw')
-        self.start_canvas.create_image(560, 560, image=Resources.settings_texture, anchor='nw',
-                                       tag='settings')
-        self.start_canvas.create_image(192, 200, image=Resources.singleplayer_texture, anchor='nw',
-                                       tag='singleplayer')
-        self.start_canvas.create_image(192, 300, image=Resources.local_multiplayer_texture, anchor='nw',
-                                       tag='local_multiplayer')        
-        self.start_canvas.create_image(192, 400, image=Resources.multiplayer_texture, anchor='nw',
-                                       tag='multiplayer')
-        self.start_canvas.create_image(192, 500, image=Resources.quit_texture, anchor='nw',
-                                       tag='quit')
+
+        self.start_canvas.create_image(0, 10, image=Resources.logo_texture, anchor='nw')
+        self.start_canvas.create_image(560, 560, image=Resources.settings_button,
+                                       anchor='nw', tag='settings')
+        self.start_canvas.create_image(192, 200, image=Resources.singleplayer_button,
+                                       anchor='nw', tag='singleplayer')
+        self.start_canvas.create_image(192, 300, image=Resources.local_multiplayer_button,
+                                       anchor='nw', tag='local_multiplayer')
+        self.start_canvas.create_image(192, 400, image=Resources.multiplayer_button,
+                                       anchor='nw', tag='multiplayer')
+        self.start_canvas.create_image(192, 500, image=Resources.quit_button,
+                                       anchor='nw', tag='quit')
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
         self.start_canvas.tag_bind('settings', '<Button-1>', lambda event: self.open_settings())
-        self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: StartMenu.quit())        
+        self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: MainMenu.quit())
         self.start_canvas.pack()
 
     def start_game(self):
@@ -69,7 +82,7 @@ class StartMenu:
 
     def open_settings(self):
         pass
-        
+
     @staticmethod
     def quit():
         root.destroy()
@@ -78,10 +91,10 @@ class StartMenu:
 class GameMenu:
     def __init__(self):
         self.game_menu_canvas = Canvas(width=320, height=540, bg='grey')
-        self.game_menu_canvas.create_image(160, 500, image=Resources.quit_texture, anchor='center',
+        self.game_menu_canvas.create_image(160, 500, image=Resources.quit_button, anchor='center',
                                            tag='game_quit')
-        self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: StartMenu.quit())  
-        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture, anchor='nw')
+        self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
+        self.game_menu_button = canvas.create_image(0, 0, image=Resources.home_button, anchor='nw')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
@@ -97,11 +110,12 @@ class GameMenu:
 
     def redraw(self):
         canvas.delete(self.game_menu_button)
-        self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture, anchor='nw')
+        self.game_menu_button = canvas.create_image(0, 0, image=Resources.home_button, anchor='nw')
 
 
 class Dots:
-    def __init__(self, color1: str = settings.colors[0], color2: str = settings.colors[1], width: int = root.winfo_screenwidth(),
+    def __init__(self, color1: str = settings.colors[0], color2: str = settings.colors[1],
+                 width: int = root.winfo_screenwidth(),
                  height: int = root.winfo_screenheight()):
         self.menu = GameMenu()
         self.height = height
@@ -231,13 +245,11 @@ class Dots:
                 self.is_greens_turn = 1
             self.turn_start()
 
+
 class LocalMultiplayerDots(Dots):
     def turn_start(self):
         canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
-        
-#class MultiplayerDots(Dots):
 
-#class SingleplayerDots(Dots):
 
-StartMenu()
+MainMenu()
 root.mainloop()
