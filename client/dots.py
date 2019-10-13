@@ -1,4 +1,4 @@
-from tkinter import Tk, Canvas, Button
+from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
 
@@ -14,28 +14,38 @@ class Resources:
     multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
     game_menu_texture = ImageTk.PhotoImage(Image.open(resources / 'menu_icon.png'))
     local_multiplayer_texture = ImageTk.PhotoImage(Image.open(resources / 'local_multiplayer.png'))
+    quit_texture = ImageTk.PhotoImage(Image.open(resources / 'quit.png'))
+    item_texture = ImageTk.PhotoImage(Image.open(resources / 'dots_item.png'))
 
 
 class StartMenu:
     def __init__(self):
         canvas.place_forget()
-        self.start_canvas = Canvas(width=640, height=640, bg='#20B2AA')
-
-        self.start_canvas.create_image(480, 360, image=Resources.settings_texture, anchor='center', tag='settings')
-        self.start_canvas.create_image(96, 220, image=Resources.singleplayer_texture, anchor='center',
+        self.start_canvas = Canvas(width=640, height=640, bg='grey')
+        self.start_canvas.create_image(0, 10, image=Resources.item_texture, anchor='nw')
+        self.start_canvas.create_image(560, 560, image=Resources.settings_texture, anchor='nw',
+                                       tag='settings')
+        self.start_canvas.create_image(192, 200, image=Resources.singleplayer_texture, anchor='nw',
                                        tag='singleplayer')
-        self.start_canvas.create_image(320, 220, image=Resources.multiplayer_texture, anchor='center',
+        self.start_canvas.create_image(192, 300, image=Resources.local_multiplayer_texture, anchor='nw',
+                                       tag='local_multiplayer')        
+        self.start_canvas.create_image(192, 400, image=Resources.multiplayer_texture, anchor='nw',
                                        tag='multiplayer')
-
-        Button(self.start_canvas, text='QUIT', command=StartMenu.quit).place(x=320, y=600)
-        self.start_canvas.pack()
+        self.start_canvas.create_image(192, 500, image=Resources.quit_texture, anchor='nw',
+                                       tag='quit')
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
+        self.start_canvas.tag_bind('settings', '<Button-1>', lambda event: self.open_settings())
+        self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: StartMenu.quit())        
+        self.start_canvas.pack()
 
     def start_game(self):
         self.start_canvas.destroy()
         canvas.place(relx=0.5, rely=0, anchor='n')
-        Dots('#20D020', 'blue')
+        LocalMultiplayerDots('#20D020', 'blue')
 
+    def open_settings(self):
+        pass
+        
     @staticmethod
     def quit():
         root.destroy()
@@ -44,6 +54,9 @@ class StartMenu:
 class GameMenu:
     def __init__(self):
         self.game_menu_canvas = Canvas(width=320, height=640, bg='#20B2AA')
+        self.game_menu_canvas.create_image(160, 500, image=Resources.quit_texture, anchor='center',
+                                           tag='game_quit')
+        self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: StartMenu.quit())  
         self.game_menu_button = canvas.create_image(0, 0, image=Resources.game_menu_texture, anchor='nw')
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
@@ -85,7 +98,7 @@ class Dots:
         root.bind('<Down>', lambda event: self.translate(0, 1))
         root.bind('<Left>', lambda event: self.translate(-1, 0))
         root.bind('<Right>', lambda event: self.translate(1, 0))
-        canvas.bind('<Button-1>', lambda event: self.create_point(event.x, event.y))
+        self.turn_start()
 
     @staticmethod
     def get_adjacent(point: (int, int)):
@@ -135,7 +148,7 @@ class Dots:
     def draw(self, x: int, y: int):
         self.position[0] = x
         self.position[1] = y
-        w = self.width // (self.scale * 16)
+        w = self.width // (self.scale * 16) + 1
         h = self.height // (self.scale * 16)
         for i in range(len(self.points[y:y + h])):
             for j in range(len(self.points[i][x:x + w])):
@@ -151,7 +164,8 @@ class Dots:
         self.menu.redraw()
 
     def set_scale(self, delta: int):
-        scale = int(self.scale * (2 * (delta // (abs(delta)))))
+        scale = int(self.scale * (2 ** (delta // (abs(delta)))))
+        print(scale)
         if scale != 0 and scale != 16:
             canvas.delete('all')
             self.scale = scale
@@ -177,7 +191,10 @@ class Dots:
         canvas.delete('all')
         self.draw(self.position[0] + x, self.position[1] + y)
 
-    def create_point(self, x: int, y: int):
+    def turn_start(self):
+        pass
+
+    def turn(self, x: int, y: int):
         x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
         if self.points[y][x] == 0:
             self.points[y][x] = self.is_greens_turn
@@ -188,7 +205,15 @@ class Dots:
                 self.is_greens_turn = 2
             else:
                 self.is_greens_turn = 1
+            self.turn_start()
 
+class LocalMultiplayerDots(Dots):
+    def turn_start(self):
+        canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
+        
+#class MultiplayerDots(Dots):
+
+#class SingleplayerDots(Dots):
 
 StartMenu()
 root.attributes('-fullscreen', True)
