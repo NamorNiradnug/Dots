@@ -3,11 +3,6 @@ from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
 
-# ======================================================================================================================
-# СНАЧАЛА геймплей, ЗАТЕМ интерфейс. ПОКА нет геймплея, НИКОМУ не будет интересен твой проект, и ты просто ЗАБРОСИШЬ
-# его!!!
-# ======================================================================================================================
-
 root = Tk()
 root.title('Dots')
 canvas = Canvas()
@@ -15,11 +10,6 @@ canvas = Canvas()
 
 class Resources:
     resources = Path('resources')
-
-    # Так делать НИ ЗА ЧТО НЕЛЬЗЯ. Ты МОГ БЫ просто рисовать разные цвета ткинтером, но вместо этого ты ЗАСОРЯЕШЬ память
-    # изображениями с одним и тем же содержимым, но разного цвета. ЗАЧЕМ?
-    colors = [ImageTk.PhotoImage(Image.open(img)) for img in (resources / 'dot_colors').glob('*.png')]
-
     settings_button = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
     singleplayer_button = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
     multiplayer_button = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
@@ -34,19 +24,20 @@ class Settings:
         self.colors = ['#20D020', 'blue']
         self.fullscreen = False
         self.sound_voice = 100
-        self.settings_canvas = Canvas(width=320, height=540)
+        self.settings_canvas = Canvas(root, width=320, height=540)
         self.settings_canvas.place_forget()
+        #self.change_fullscreen()
 
     def open_settings(self, master, x, y):
-        self.settings_canvas['master'] = master
-        self.settings_canvas.place((x, y))
+        self.settings_canvas.master = master
+        self.settings_canvas.place(x = x, y = y)
 
     def close_settings(self):
         self.settings_canvas.place_forget()
 
     def change_fullscreen(self):
         self.fullscreen = not self.fullscreen
-        root.atributes('-fullscreen', self.fullscreen)
+        root.attributes('-fullscreen', self.fullscreen)
 
 
 settings = Settings()
@@ -56,10 +47,9 @@ class MainMenu:
     def __init__(self):
         canvas.place_forget()
 
-        # Этот серый ОЧЕНЬ уродлив. Тебе нужен цвет НЕ из стандартного набора цветов ткинтера.
         self.start_canvas = Canvas(width=640, height=640, bg='grey')
 
-        self.start_canvas.create_image(0, 10, image=Resources.logo_texture, anchor='nw')
+        self.start_canvas.create_image(100, 10, image=Resources.logo_texture, anchor='nw')
         self.start_canvas.create_image(560, 560, image=Resources.settings_button,
                                        anchor='nw', tag='settings')
         self.start_canvas.create_image(192, 200, image=Resources.singleplayer_button,
@@ -81,7 +71,7 @@ class MainMenu:
         LocalMultiplayerDots('#20D020', 'blue')
 
     def open_settings(self):
-        pass
+        settings.open_settings(self.start_canvas, 0, 160)
 
     @staticmethod
     def quit():
@@ -100,7 +90,7 @@ class GameMenu:
 
     def open_game_menu(self):
         self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
-        canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
+        root.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
         root.bind('<Escape>', lambda event: self.close_game_menu())
 
     def close_game_menu(self):
@@ -203,7 +193,6 @@ class Dots:
 
     def set_scale(self, delta: int):
         scale = int(self.scale * (2 ** (delta // (abs(delta)))))
-        print(scale)
         if scale != 0 and scale != 16:
             canvas.delete('all')
             self.scale = scale
