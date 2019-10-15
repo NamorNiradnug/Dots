@@ -134,34 +134,34 @@ class Dots:
                 (point[0], point[1] + 1), (point[0] - 1, point[1]))
 
     @staticmethod
-    def get_surrounding(point: (int, int)):
-        return ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
+    def to_tracks(track: list):
+        return set((tracks[i], tracks[i + 1]) for i in range(len(track) - 1))
+        
+    
+    def get_surrounding(self, point: (int, int)):
+        return [i for i in ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
                 (point[0] + 1, point[1]), (point[0] + 1, point[1] + 1),
                 (point[0], point[1] + 1), (point[0] - 1, point[1] + 1),
                 (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
+                if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
     def do_connect(self, point: (int, int)):
-        open_p = []
+        open_p = self.get_surrounding(point)
         used = []
-        for i in Dots.get_surrounding(point):
-            if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]:
-                open_p += [(point, i)]
-        while len(open_p) > 0:
-            position = open_p[-1][1]
-            used += open_p[-1:]
-            open_p.pop()
-            if position == point:
-                self.tracks.update(set(used))
-            else:
-                for i in Dots.get_surrounding(position):
-                    if self.points[i[1]][i[0]] == self.points[position[1]][position[0]] and used.count(
-                            (position, i)) == 0 and \
-                            used.count((i, position)) == 0 \
-                            and open_p.count((position, i)) == 0:
-                        open_p += [(position, i)]
-        for i in Dots.get_adjacent(point):
-            if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]:
-                self.tracks.update({(point, i)})
+        tracks = [[point, i] for i in open_p]
+        old_tracks = []
+        while len(open_p):
+            old_tracks = tracks.copy()
+            tracks = []
+            for i in old_tracks:
+                for new in self.get_surrounding(old_tracks[i]):
+                    if new == point:
+                        self.tracks.update(Dots.to_tracks(old_tracks[i] + [new]))
+                    elif used.count(new):
+                        tracks += old_tracks[i] + [new]
+                        open_p.remove(new)
+                        used.append(new)
+                        open_p += [q for q in self.get_surrounding(new) if used.count(q)]
 
     def draw_point(self, point_type: int, x: int, y: int):
         canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
