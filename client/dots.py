@@ -1,8 +1,9 @@
-import os
 from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
 
+# TODO: Комментируй код! Я половину не понимаю, пиши комменты! Например (это пример, очевидное комментить не надо):
+# Создаём окно.
 root = Tk()
 root.title('Dots')
 canvas = Canvas()
@@ -26,11 +27,10 @@ class Settings:
         self.sound_voice = 100
         self.settings_canvas = Canvas(root, width=320, height=540)
         self.settings_canvas.place_forget()
-        #self.change_fullscreen()
 
     def open_settings(self, master, x, y):
         self.settings_canvas.master = master
-        self.settings_canvas.place(x = x, y = y)
+        self.settings_canvas.place(x=x, y=y)
 
     def close_settings(self):
         self.settings_canvas.place_forget()
@@ -135,29 +135,36 @@ class Dots:
 
     @staticmethod
     def to_tracks(track: list):
-        return set((tracks[i], tracks[i + 1]) for i in range(len(track) - 1))
-        
-    
+        return {(track[i], track[i + 1]) for i in range(len(track) - 1)}
+
     def get_surrounding(self, point: (int, int)):
         return [i for i in ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
-                (point[0] + 1, point[1]), (point[0] + 1, point[1] + 1),
-                (point[0], point[1] + 1), (point[0] - 1, point[1] + 1),
-                (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
+                            (point[0] + 1, point[1]), (point[0] + 1, point[1] + 1),
+                            (point[0], point[1] + 1), (point[0] - 1, point[1] + 1),
+                            (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
+    # TODO: ЭТУ ФУНКЦИЮ НУЖНО ПЕРЕДЕЛАТЬ. СНОВА.
     def do_connect(self, point: (int, int)):
         open_p = self.get_surrounding(point)
         used = []
+
+        # TODO: КАКОГО ФИГА ЗДЕСЬ ПРОИСХОДИТ??? ЗАЧЕМ [point, i]???
         tracks = [[point, i] for i in open_p]
-        old_tracks = []
         while len(open_p):
             old_tracks = tracks.copy()
             tracks = []
             for i in old_tracks:
+
+                # TODO: old_tracks[i] - list[(int, int), int], а не (int, int)!
                 for new in self.get_surrounding(old_tracks[i]):
                     if new == point:
+
+                        # TODO: old_tracks[i] - list[(int, int), int], а не (int, int)!
                         self.tracks.update(Dots.to_tracks(old_tracks[i] + [new]))
                     elif used.count(new):
+
+                        # TODO: old_tracks[i] - list[(int, int), int], а не (int, int)!
                         tracks += old_tracks[i] + [new]
                         open_p.remove(new)
                         used.append(new)
