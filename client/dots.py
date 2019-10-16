@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- utf-8 -*-
 from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
