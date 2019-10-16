@@ -1,17 +1,16 @@
-#!/usr/bin/env python3
-# -*- utf-8 -*-
 from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
 
-# TODO: Комментируй код! Я половину не понимаю, пиши комменты! Например (это пример, очевидное комментить не надо):
-# Создаём окно.
+#Create tkinter root
 root = Tk()
 root.title('Dots')
+#this is master canvas where this program draw Dots
 canvas = Canvas()
 
 
 class Resources:
+    ''' This is struction with importing images'''
     resources = Path('resources')
     settings_button = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
     singleplayer_button = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
@@ -30,8 +29,10 @@ class Settings:
         self.settings_canvas = Canvas(root, width=320, height=540)
         self.settings_canvas.place_forget()
 
-    def open_settings(self, master, x, y):
-        self.settings_canvas.master = master
+    #I want self.settings_canvas can change master, but it is impossible
+    def open_settings(self, master_, x, y):
+        self.settings_canvas.master = master_
+        self.settings_canvas.config(master=master_)
         self.settings_canvas.place(x=x, y=y)
 
     def close_settings(self):
@@ -100,6 +101,7 @@ class GameMenu:
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
+    #this function need becouse I redraw dots canvas always, when player turns, and dots draw front of this button
     def redraw(self):
         canvas.delete(self.game_menu_button)
         self.game_menu_button = canvas.create_image(0, 0, image=Resources.home_button, anchor='nw')
@@ -135,39 +137,38 @@ class Dots:
         return ((point[0], point[1] - 1), (point[0] + 1, point[1]),
                 (point[0], point[1] + 1), (point[0] - 1, point[1]))
 
+    #this method tranlate big track [(int, int), (int, int), ...] to set {((int, int), (int, int)), ...} for draw function in Dots
     @staticmethod
     def to_tracks(track: list):
-        return {(track[i], track[i + 1]) for i in range(len(track) - 1)}
+        return set([(track[i], track[i + 1]) for i in range(len(track) - 1)])
 
     def get_surrounding(self, point: (int, int)):
+        print('point', point)
         return [i for i in ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
                             (point[0] + 1, point[1]), (point[0] + 1, point[1] + 1),
                             (point[0], point[1] + 1), (point[0] - 1, point[1] + 1),
                             (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
-    # TODO: ЭТУ ФУНКЦИЮ НУЖНО ПЕРЕДЕЛАТЬ. СНОВА.
+    #this method does not work!!!
     def do_connect(self, point: (int, int)):
         open_p = self.get_surrounding(point)
         used = []
 
-        # TODO: КАКОГО ФИГА ЗДЕСЬ ПРОИСХОДИТ??? ЗАЧЕМ [point, i]???
-        tracks = [[point, i] for i in open_p]
-        while len(open_p):
+        tracks = [[point]]
+        print(tracks)
+        while len(open_p) * len(tracks):
+            print(open_p, used, tracks)
             old_tracks = tracks.copy()
             tracks = []
             for i in old_tracks:
-
-                # TODO: old_tracks[i] - list[(int, int), int], а не (int, int)!
-                for new in self.get_surrounding(old_tracks[i]):
+                print(1)
+                for new in self.get_surrounding(i[-1]):
                     if new == point:
-
-                        # TODO: old_tracks[i] - list[(int, int), int], а не (int, int)!
-                        self.tracks.update(Dots.to_tracks(old_tracks[i] + [new]))
-                    elif used.count(new):
-
-                        # TODO: old_tracks[i] - list[(int, int), int], а не (int, int)!
-                        tracks += old_tracks[i] + [new]
+                        self.tracks.update(Dots.to_tracks(i + [new]))
+                    elif not used.count(new):
+                        print('used:', used, 'new:', new)
+                        tracks.append(i + [new])
                         open_p.remove(new)
                         used.append(new)
                         open_p += [q for q in self.get_surrounding(new) if used.count(q)]
@@ -208,6 +209,7 @@ class Dots:
             self.draw(self.position[0], self.position[1])
 
     def translate(self, x: int, y: int):
+        #update self.points for draw function in Dots
         while self.position[1] + y <= 0:
             self.points.insert(0, [0] * len(self.points[0]))
             self.position[1] += 1
