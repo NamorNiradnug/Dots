@@ -137,13 +137,7 @@ class Dots:
         return ((point[0], point[1] - 1), (point[0] + 1, point[1]),
                 (point[0], point[1] + 1), (point[0] - 1, point[1]))
 
-    #this method tranlate big track [(int, int), (int, int), ...] to set {((int, int), (int, int)), ...} for draw function in Dots
-    @staticmethod
-    def to_tracks(track: list):
-        return set([(track[i], track[i + 1]) for i in range(len(track) - 1)])
-
     def get_surrounding(self, point: (int, int)):
-        print('point', point)
         return [i for i in ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
                             (point[0] + 1, point[1]), (point[0] + 1, point[1] + 1),
                             (point[0], point[1] + 1), (point[0] - 1, point[1] + 1),
@@ -152,26 +146,32 @@ class Dots:
 
     #this method does not work!!!
     def do_connect(self, point: (int, int)):
-        open_p = self.get_surrounding(point)
+        print('point:', point)
         used = []
-
-        tracks = [[point]]
-        print(tracks)
-        while len(open_p) * len(tracks):
-            print(open_p, used, tracks)
-            old_tracks = tracks.copy()
-            tracks = []
-            for i in old_tracks:
-                print(1)
-                for new in self.get_surrounding(i[-1]):
-                    if new == point:
-                        self.tracks.update(Dots.to_tracks(i + [new]))
-                    elif not used.count(new):
-                        print('used:', used, 'new:', new)
-                        tracks.append(i + [new])
-                        open_p.remove(new)
-                        used.append(new)
-                        open_p += [q for q in self.get_surrounding(new) if used.count(q)]
+        tracks = []
+        open_t = []
+        open_t = [(point, i) for i in self.get_surrounding(point)]
+        while len(open_t) != 0:
+            print('open_t:' , open_t, '\nused', used)
+            position = open_t[-1][1]
+            used += [open_t[-1], open_t[-1][::-1]]
+            print('used:', used)
+            open_t.pop()
+            for i in range(len(tracks)):
+                print('tracks:', tracks)
+                if tracks[i][-1][1] == used[-2][0]:
+                    tracks[i].append(used[-2])
+                print('tracks:', tracks)
+            if used[-1][1] == point:
+                tracks.append([(point, position)])
+            open_t += [(position, i) for i in self.get_surrounding(position) 
+                        if not ((position, i) in used)]
+            if position == point:
+                for i in tracks:
+                    if i[-1][1] == point:
+                        self.tracks.update(set(i))
+                    print('self.tracks:', self.tracks, '\ni', i)
+        print('----------end turn-----------')
 
     def draw_point(self, point_type: int, x: int, y: int):
         canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
