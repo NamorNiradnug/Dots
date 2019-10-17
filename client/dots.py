@@ -2,15 +2,15 @@ from tkinter import Tk, Canvas
 from PIL import Image, ImageTk
 from pathlib import Path
 
-#Create tkinter root
+# Create tkinter root.
 root = Tk()
 root.title('Dots')
-#this is master canvas where this program draw Dots
+# This is master canvas where this program draw Dots.
 canvas = Canvas()
 
 
 class Resources:
-    ''' This is struction with importing images'''
+    # This is the structure for storing images.
     resources = Path('resources')
     settings_button = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
     singleplayer_button = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
@@ -29,7 +29,7 @@ class Settings:
         self.settings_canvas = Canvas(root, width=320, height=540)
         self.settings_canvas.place_forget()
 
-    #I want self.settings_canvas can change master, but it is impossible
+    # I want self.settings_canvas to change the master, but it is impossible.
     def open_settings(self, master_, x, y):
         self.settings_canvas.master = master_
         self.settings_canvas.config(master=master_)
@@ -101,7 +101,8 @@ class GameMenu:
         canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
-    #this function need becouse I redraw dots canvas always, when player turns, and dots draw front of this button
+    # This function is required to redraw dots to canvas, when player makes a turn, and dots are drawn in front of
+    # this button.
     def redraw(self):
         canvas.delete(self.game_menu_button)
         self.game_menu_button = canvas.create_image(0, 0, image=Resources.home_button, anchor='nw')
@@ -144,15 +145,14 @@ class Dots:
                             (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
-    #this method does not work!!!
+    # TODO: Complete this method.
     def do_connect(self, point: (int, int)):
         print('point:', point)
         used = []
         tracks = []
-        open_t = []
         open_t = [(point, i) for i in self.get_surrounding(point)]
         while len(open_t) != 0:
-            print('open_t:' , open_t, '\nused', used)
+            print('open_t:', open_t, '\nused', used)
             position = open_t[-1][1]
             used += [open_t[-1], open_t[-1][::-1]]
             print('used:', used)
@@ -164,8 +164,8 @@ class Dots:
                 print('tracks:', tracks)
             if used[-1][1] == point:
                 tracks.append([(point, position)])
-            open_t += [(position, i) for i in self.get_surrounding(position) 
-                        if not ((position, i) in used)]
+            open_t += [(position, i) for i in self.get_surrounding(position)
+                       if not ((position, i) in used)]
             if position == point:
                 for i in tracks:
                     if i[-1][1] == point:
@@ -209,7 +209,7 @@ class Dots:
             self.draw(self.position[0], self.position[1])
 
     def translate(self, x: int, y: int):
-        #update self.points for draw function in Dots
+        # Update self.points for draw function in Dots.
         while self.position[1] + y <= 0:
             self.points.insert(0, [0] * len(self.points[0]))
             self.position[1] += 1
