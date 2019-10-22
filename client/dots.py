@@ -145,33 +145,29 @@ class Dots:
                             (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
-    # TODO: Complete this method.
     def do_connect(self, point: (int, int)):
-        print('point:', point)
+        connected = {point}
         used = []
         tracks = []
         open_t = [(point, i) for i in self.get_surrounding(point)]
         while len(open_t) != 0:
-            print('open_t:', open_t, '\nused', used)
             position = open_t[-1][1]
             used += [open_t[-1], open_t[-1][::-1]]
-            print('used:', used)
             open_t.pop()
             for i in range(len(tracks)):
-                print('tracks:', tracks)
                 if tracks[i][-1][1] == used[-2][0]:
-                    tracks[i].append(used[-2])
-                print('tracks:', tracks)
-            if used[-1][1] == point:
-                tracks.append([(point, position)])
-            open_t += [(position, i) for i in self.get_surrounding(position)
-                       if not ((position, i) in used)]
-            if position == point:
+                    tracks.append(tracks[i] + [used[-2]])
+            if used[-1][1] in connected:
+                tracks.append([(used[-1][1], position)])
+            if position != point:
+                open_t += [(position, i) for i in self.get_surrounding(position)
+                           if not ((position, i) in used)]
+            else:
                 for i in tracks:
-                    if i[-1][1] == point:
+                    if i[-1][1] in connected:
                         self.tracks.update(set(i))
-                    print('self.tracks:', self.tracks, '\ni', i)
-        print('----------end turn-----------')
+                        for t in i:
+                             connected.add(t[1])
 
     def draw_point(self, point_type: int, x: int, y: int):
         canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
