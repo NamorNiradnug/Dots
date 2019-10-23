@@ -26,6 +26,7 @@ class Settings:
         self.colors = ['#20D020', 'blue']
         self.fullscreen = False
         self.sound_voice = 100
+        self.draw_line_tracks = True
         self.settings_canvas = Canvas(root, width=320, height=540)
         self.settings_canvas.place_forget()
 
@@ -146,10 +147,17 @@ class Dots:
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
     def do_connect(self, point: (int, int)):
+        if settings.draw_line_tracks:
+            self.tracks.update(set([(point, i) for i in Dots.get_adjacent(point)  
+                if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]))
         connected = {point}
         used = []
         tracks = []
         open_t = [(point, i) for i in self.get_surrounding(point)]
+        to_del = []
+        for p in range(len(open_t)):
+            if open_t[(p + 1) % len(open_t)] in self.get_surrounding(open_t[p]):
+                pass
         while len(open_t) != 0:
             position = open_t[-1][1]
             used += [open_t[-1], open_t[-1][::-1]]
@@ -178,6 +186,9 @@ class Dots:
             canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
                                (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
                                fill=self.colors[point_type])
+
+    def find_eaten(self, point):
+        pass
 
     def draw(self, x: int, y: int):
         self.position[0] = x
@@ -235,10 +246,10 @@ class Dots:
             self.do_connect((x, y))
             canvas.delete('all')
             self.draw(self.position[0], self.position[1])
-            if self.is_greens_turn == 1:
-                self.is_greens_turn = 2
-            else:
-                self.is_greens_turn = 1
+         #   if self.is_greens_turn == 1:
+         #       self.is_greens_turn = 2
+         #   else:
+         #       self.is_greens_turn = 1
             self.turn_start()
 
 
