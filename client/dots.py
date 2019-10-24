@@ -24,7 +24,8 @@ class Resources:
 class Settings:
     def __init__(self):
         self.colors = ['#20D020', 'blue']
-        self.fullscreen = False
+        self.fullscreen = True
+        root.attributes('-fullscreen', self.fullscreen)
         self.sound_voice = 100
         self.draw_line_tracks = True
         self.settings_canvas = Canvas(root, width=320, height=540)
@@ -146,18 +147,34 @@ class Dots:
                             (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
+    def optim_clear(self, tracks):
+        print(0)
+        if len(tracks) != 0:
+            deleting = [tracks[0]]
+            for __ in range(len(tracks)):
+                for i in tracks:
+                    if set(self.get_surrounding(i[1])).intersection(set([p[1] for p in deleting])) != set():
+                        self.tracks.add(i)
+                        tracks.remove(i)
+                        deleting.append(i)
+        return tracks
+
+    def find_triangulars(self, point):
+        self_adjacent = [i for i in Dots.get_adjacent(point) if i in self.get_surrounding(point)]
+        for p in range(len(self_adjacent)):
+            if self_adjacent[p] in self.get_surrounding(self_adjacent[(p + 1) % len(self_adjacent)]):
+                self.tracks.add((self_adjacent[p], self_adjacent[(p + 1) % len(self_adjacent)]))
+
     def do_connect(self, point: (int, int)):
         if settings.draw_line_tracks:
             self.tracks.update(set([(point, i) for i in Dots.get_adjacent(point)  
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]))
+        self.find_triangulars(point)
         connected = {point}
         used = []
         tracks = []
         open_t = [(point, i) for i in self.get_surrounding(point)]
-        to_del = []
-        for p in range(len(open_t)):
-            if open_t[(p + 1) % len(open_t)] in self.get_surrounding(open_t[p]):
-                pass
+        open_t = self.optim_clear(open_t)
         while len(open_t) != 0:
             position = open_t[-1][1]
             used += [open_t[-1], open_t[-1][::-1]]
@@ -246,10 +263,10 @@ class Dots:
             self.do_connect((x, y))
             canvas.delete('all')
             self.draw(self.position[0], self.position[1])
-         #   if self.is_greens_turn == 1:
-         #       self.is_greens_turn = 2
-         #   else:
-         #       self.is_greens_turn = 1
+            if self.is_greens_turn == 1:
+                self.is_greens_turn = 2
+            else:
+                self.is_greens_turn = 1
             self.turn_start()
 
 
