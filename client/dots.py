@@ -32,7 +32,6 @@ class Settings:
         self.settings_canvas = Canvas(root, width=320, height=540, bg = 'red')
 
     def open_or_close_settings(self, master, x=0, y=0):
-        print(1)
         if self.settings_canvas.place_info() == {}:
             self.open_settings(x, y, master)
         else:
@@ -92,14 +91,18 @@ class GameMenu:
         self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
+    def open_or_close_game_menu(self):
+        if self.game_menu_canvas.place_info == {}:
+            self.open_game_menu()
+        else:
+            self.close_game_menu()
+
     def open_game_menu(self):
         self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
-        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
         root.bind('<Escape>', lambda event: self.close_game_menu())
 
     def close_game_menu(self):
         self.game_menu_canvas.place_forget()
-        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
     # This function is required to redraw dots to canvas, when player makes a turn, and dots are drawn in front of
@@ -196,10 +199,6 @@ class Dots:
                              connected.add(t[1])
 
     def draw_point(self, point_type: int, x: int, y: int):
-        self.dots_canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
-                           (x * 16 + 8) * self.scale, (y + 1) * self.scale * 16)
-        self.dots_canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale,
-                           (x + 1) * self.scale * 16, (y * 16 + 8) * self.scale)
         if point_type != 0:
             self.dots_canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
                                (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
@@ -213,7 +212,14 @@ class Dots:
         self.position[1] = y
         w = self.width // (self.scale * 16) + 1
         h = self.height // (self.scale * 16) + 1
+        for i in range(len(self.points[x:x + w])):
+            self.dots_canvas.create_line(((16 * i) + 8) * self.scale, 0, 
+                                         ((i * 16) + 8) * self.scale, self.height, 
+                                        fill='black')
         for i in range(len(self.points[y:y + h])):
+            self.dots_canvas.create_line(0, ((16 * i) + 8) * self.scale, 
+                                         self.width, ((16 * i) + 8) * self.scale, 
+                                        fill='black')
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
         for i in self.tracks:
@@ -230,13 +236,12 @@ class Dots:
  # TODO set_scale
     def set_scale(self, delta: int):
         scale = int(self.scale * (2 ** (delta // (abs(delta)))))
-        print(scale, delta)
         if scale != 1 and scale != 16:
             self.dots_canvas.delete('all')
             self.scale = scale
             if delta > 0:
-                self.position[0] += self.width // (8 * self.scale)
-                self.position[1] += self.height // (8 * self.scale)
+                self.position[0] += self.width // (64 * self.scale)
+                self.position[1] += self.height // (64 * self.scale)
             self.draw(self.position[0], self.position[1])
 
     def translate(self, x: int, y: int):
@@ -264,17 +269,20 @@ class Dots:
         pass
 
     def turn(self, x: int, y: int):
-        x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
-        if self.points[y][x] == 0:
-            self.points[y][x] = self.is_greens_turn
-            self.do_connect((x, y))
-            self.dots_canvas.delete('all')
-            self.draw(self.position[0], self.position[1])
-            if self.is_greens_turn == 1:
-                self.is_greens_turn = 2
-            else:
-                self.is_greens_turn = 1
-            self.turn_start()
+        if x <= 60 and y <= 60:
+            self.menu.open_or_close_game_menu()
+        else:
+            x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
+            if self.points[y][x] == 0:
+                self.points[y][x] = self.is_greens_turn
+                self.do_connect((x, y))
+                self.dots_canvas.delete('all')
+                self.draw(self.position[0], self.position[1])
+                if self.is_greens_turn == 1:
+                    self.is_greens_turn = 2
+                else:
+                    self.is_greens_turn = 1
+                self.turn_start()
 
 
 class LocalMultiplayerDots(Dots):
