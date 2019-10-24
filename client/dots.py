@@ -1,4 +1,5 @@
 from tkinter import Tk, Canvas
+from _tkinter import TclError
 from PIL import Image, ImageTk
 from pathlib import Path
 
@@ -23,18 +24,22 @@ class Resources:
 class Settings:
     def __init__(self):
         self.colors = ['#20D020', 'blue']
-        self.fullscreen = True
+        self.fullscreen = False
         root.attributes('-fullscreen', self.fullscreen)
         self.sound_voice = 100
         self.draw_line_tracks = True
-        self.settings_canvas = Canvas(root, width=320, height=540)
-        self.settings_canvas.place_forget()
+        self.dots_canvas_bg = 'white'
+        self.settings_canvas = Canvas(root, width=320, height=540, bg = 'red')
 
-    # I want self.settings_canvas to change the master, but it is impossible.
-    def open_settings(self, master_, x, y):
-        self.settings_canvas.master = master_
-        self.settings_canvas.config(master=master_)
-        self.settings_canvas.place(x=x, y=y)
+    def open_or_close_settings(self, master, x=0, y=0):
+        print(1)
+        if self.settings_canvas.place_info() == {}:
+            self.open_settings(x, y, master)
+        else:
+            self.close_settings()
+
+    def open_settings(self, x, y, master):
+        self.settings_canvas.place(x=x, y=y, anchor='center', in_=master)
 
     def close_settings(self):
         self.settings_canvas.place_forget()
@@ -49,9 +54,8 @@ settings = Settings()
 
 class MainMenu:
     def __init__(self):
-        canvas.place_forget()
-
-        self.start_canvas = Canvas(width=640, height=640, bg='grey')
+        self.start_canvas = Canvas(root, width=640, height=640, bg='grey', bd=0)
+        self.start_canvas.pack()
 
         self.start_canvas.create_image(100, 10, image=Resources.logo_texture, anchor='nw')
         self.start_canvas.create_image(560, 560, image=Resources.settings_button,
@@ -65,27 +69,22 @@ class MainMenu:
         self.start_canvas.create_image(192, 500, image=Resources.quit_button,
                                        anchor='nw', tag='quit')
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
-        self.start_canvas.tag_bind('settings', '<Button-1>', lambda event: self.open_settings())
+        self.start_canvas.tag_bind('settings', '<Button-1>', lambda event:  settings.open_or_close_settings(self.start_canvas))
         self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: MainMenu.quit())
-        self.start_canvas.pack()
 
     def start_game(self):
         self.start_canvas.destroy()
-        canvas.place(relx=0.5, rely=0, anchor='n')
         LocalMultiplayerDots('#20D020', 'blue')
-
-    def open_settings(self):
-        settings.open_settings(self.start_canvas, 0, 160)
 
     @staticmethod
     def quit():
-        root.destroy()
+        root.quit()
 
 
 class GameMenu:
     def __init__(self, canvas):
         self.master = canvas
-        self.game_menu_canvas = Canvas(width=320, height=540, bg='grey')
+        self.game_menu_canvas = Canvas(root, width=320, height=540, bg='grey', bd=0)
         self.game_menu_canvas.create_image(160, 500, image=Resources.quit_button, anchor='center',
                                            tag='game_quit')
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
@@ -116,8 +115,9 @@ class Dots:
                  height: int = root.winfo_screenheight()):
         self.height = height
         self.width = width
-        self.dots_canvas = Canvas()
+        self.dots_canvas = Canvas(root, bg=settings.dots_canvas_bg, bd=0)
         self.dots_canvas.config(width=self.width, height=self.height)
+        self.dots_canvas.pack()
         self.menu = GameMenu(self.dots_canvas)
         self.points = [[0] * 100 for _ in range(100)]
         self.colors = ["magenta", color1, color2]
@@ -212,7 +212,7 @@ class Dots:
         self.position[0] = x
         self.position[1] = y
         w = self.width // (self.scale * 16) + 1
-        h = self.height // (self.scale * 16)
+        h = self.height // (self.scale * 16) + 1
         for i in range(len(self.points[y:y + h])):
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
@@ -226,11 +226,17 @@ class Dots:
                                    fill=self.colors[self.points[i[0][1]][i[0][0]]], width=2 * self.scale)
         self.menu.redraw()
 
+
+ # TODO set_scale
     def set_scale(self, delta: int):
         scale = int(self.scale * (2 ** (delta // (abs(delta)))))
-        if scale != 0 and scale != 16:
+        print(scale, delta)
+        if scale != 1 and scale != 16:
             self.dots_canvas.delete('all')
             self.scale = scale
+            if delta > 0:
+                self.position[0] += self.width // (8 * self.scale)
+                self.position[1] += self.height // (8 * self.scale)
             self.draw(self.position[0], self.position[1])
 
     def translate(self, x: int, y: int):
@@ -246,12 +252,12 @@ class Dots:
             self.position[0] += 1
             self.origin[0] += 1
             self.tracks = set([((i[0][0] + 1, i[0][1]), (i[1][0] + 1, i[1][1])) for i in self.tracks])
-        while self.position[1] + y + 80 // self.scale >= len(self.points):
+        while self.position[1] + y + 200 // self.scale >= len(self.points):
             self.points.append([0] * len(self.points[0]))
-        while self.position[0] + x + 80 // self.scale >= len(self.points[0]):
+        while self.position[0] + x + 200 // self.scale >= len(self.points[0]):
             for i in range(len(self.points)):
                 self.points[i].append(0)
-        canvas.delete('all')
+        self.dots_canvas.delete('all')
         self.draw(self.position[0] + x, self.position[1] + y)
 
     def turn_start(self):
@@ -262,7 +268,7 @@ class Dots:
         if self.points[y][x] == 0:
             self.points[y][x] = self.is_greens_turn
             self.do_connect((x, y))
-            canvas.delete('all')
+            self.dots_canvas.delete('all')
             self.draw(self.position[0], self.position[1])
             if self.is_greens_turn == 1:
                 self.is_greens_turn = 2
@@ -273,7 +279,7 @@ class Dots:
 
 class LocalMultiplayerDots(Dots):
     def turn_start(self):
-        canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
+        self.dots_canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
 
 
 MainMenu()
