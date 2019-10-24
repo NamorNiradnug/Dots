@@ -6,7 +6,6 @@ from pathlib import Path
 root = Tk()
 root.title('Dots')
 # This is master canvas where this program draw Dots.
-canvas = Canvas()
 
 
 class Resources:
@@ -84,40 +83,42 @@ class MainMenu:
 
 
 class GameMenu:
-    def __init__(self):
+    def __init__(self, canvas):
+        self.master = canvas
         self.game_menu_canvas = Canvas(width=320, height=540, bg='grey')
         self.game_menu_canvas.create_image(160, 500, image=Resources.quit_button, anchor='center',
                                            tag='game_quit')
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
-        self.game_menu_button = canvas.create_image(0, 0, image=Resources.home_button, anchor='nw')
-        canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
+        self.game_menu_button = self.master.create_image(0, 0, image=Resources.home_button, anchor='nw')
+        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
     def open_game_menu(self):
         self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
-        root.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
+        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.close_game_menu())
         root.bind('<Escape>', lambda event: self.close_game_menu())
 
     def close_game_menu(self):
         self.game_menu_canvas.place_forget()
-        canvas.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
+        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
         root.bind('<Escape>', lambda event: self.open_game_menu())
 
     # This function is required to redraw dots to canvas, when player makes a turn, and dots are drawn in front of
     # this button.
     def redraw(self):
-        canvas.delete(self.game_menu_button)
-        self.game_menu_button = canvas.create_image(0, 0, image=Resources.home_button, anchor='nw')
+        self.master.delete(self.game_menu_button)
+        self.game_menu_button = self.master.create_image(0, 0, image=Resources.home_button, anchor='nw')
 
 
 class Dots:
     def __init__(self, color1: str = settings.colors[0], color2: str = settings.colors[1],
                  width: int = root.winfo_screenwidth(),
                  height: int = root.winfo_screenheight()):
-        self.menu = GameMenu()
         self.height = height
         self.width = width
-        canvas.config(width=self.width, height=self.height)
+        self.dots_canvas = Canvas()
+        self.dots_canvas.config(width=self.width, height=self.height)
+        self.menu = GameMenu(self.dots_canvas)
         self.points = [[0] * 100 for _ in range(100)]
         self.colors = ["magenta", color1, color2]
         self.tracks = set()
@@ -195,12 +196,12 @@ class Dots:
                              connected.add(t[1])
 
     def draw_point(self, point_type: int, x: int, y: int):
-        canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
+        self.dots_canvas.create_line((x * 16 + 8) * self.scale, y * self.scale * 16,
                            (x * 16 + 8) * self.scale, (y + 1) * self.scale * 16)
-        canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale,
+        self.dots_canvas.create_line(x * self.scale * 16, (y * 16 + 8) * self.scale,
                            (x + 1) * self.scale * 16, (y * 16 + 8) * self.scale)
         if point_type != 0:
-            canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
+            self.dots_canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
                                (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
                                fill=self.colors[point_type])
 
@@ -218,7 +219,7 @@ class Dots:
         for i in self.tracks:
             if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
                     <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
-                canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale,
+                self.dots_canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale,
                                    ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
                                    ((i[1][0] - self.position[0]) * 16 + 8) * self.scale,
                                    ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
@@ -228,7 +229,7 @@ class Dots:
     def set_scale(self, delta: int):
         scale = int(self.scale * (2 ** (delta // (abs(delta)))))
         if scale != 0 and scale != 16:
-            canvas.delete('all')
+            self.dots_canvas.delete('all')
             self.scale = scale
             self.draw(self.position[0], self.position[1])
 
