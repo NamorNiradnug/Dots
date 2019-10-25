@@ -1,5 +1,4 @@
 from tkinter import Tk, Canvas
-from _tkinter import TclError
 from PIL import Image, ImageTk
 from pathlib import Path
 
@@ -89,21 +88,19 @@ class GameMenu:
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
         self.game_menu_button = self.master.create_image(0, 0, image=Resources.home_button, anchor='nw')
         self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
-        root.bind('<Escape>', lambda event: self.open_game_menu())
+        root.bind('<Escape>', lambda event: self.toggle_game_menu())
 
-    def open_or_close_game_menu(self):
-        if self.game_menu_canvas.place_info == {}:
+    def toggle_game_menu(self):
+        if self.game_menu_canvas.place_info() == {}:
             self.open_game_menu()
         else:
             self.close_game_menu()
 
     def open_game_menu(self):
         self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
-        root.bind('<Escape>', lambda event: self.close_game_menu())
-
+    
     def close_game_menu(self):
         self.game_menu_canvas.place_forget()
-        root.bind('<Escape>', lambda event: self.open_game_menu())
 
     # This function is required to redraw dots to canvas, when player makes a turn, and dots are drawn in front of
     # this button.
@@ -240,8 +237,8 @@ class Dots:
             self.dots_canvas.delete('all')
             self.scale = scale
             if delta > 0:
-                self.position[0] += self.width // (64 * self.scale)
-                self.position[1] += self.height // (64 * self.scale)
+                self.position[0] += int(self.width / (64 * self.scale))
+                self.position[1] += int(self.height / (64 * self.scale))
             self.draw(self.position[0], self.position[1])
 
     def translate(self, x: int, y: int):
@@ -269,8 +266,9 @@ class Dots:
         pass
 
     def turn(self, x: int, y: int):
-        if x <= 60 and y <= 60:
-            self.menu.open_or_close_game_menu()
+        print(x, y)
+        if x <= 64 and y <= 64:
+            self.menu.toggle_game_menu()
         else:
             x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
             if self.points[y][x] == 0:
