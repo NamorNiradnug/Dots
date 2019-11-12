@@ -30,7 +30,7 @@ class Settings:
         self.dots_canvas_bg = 'white'
         self.settings_canvas = Canvas(root, width=320, height=540, bg = 'red')
 
-    def open_or_close_settings(self, master, x=0, y=0):
+    def toggle_settings(self, master, x=0, y=0):
         if self.settings_canvas.place_info() == {}:
             self.open_settings(x, y, master)
         else:
@@ -52,8 +52,10 @@ settings = Settings()
 
 class MainMenu:
     def __init__(self):
-        self.start_canvas = Canvas(root, width=640, height=640, bg='grey', bd=0)
-        self.start_canvas.pack()
+        self.back_canvas = Canvas(root, width=1380, height=1080)
+        self.start_canvas = Canvas(self.back_canvas, width=640, height=640, bg='grey', bd=0)
+        self.back_canvas.place()
+        self.start_canvas.place(relx=0.5, rely=0, anchor='n')
 
         self.start_canvas.create_image(100, 10, image=Resources.logo_texture, anchor='nw')
         self.start_canvas.create_image(560, 560, image=Resources.settings_button,
@@ -67,12 +69,18 @@ class MainMenu:
         self.start_canvas.create_image(192, 500, image=Resources.quit_button,
                                        anchor='nw', tag='quit')
         self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
-        self.start_canvas.tag_bind('settings', '<Button-1>', lambda event:  settings.open_or_close_settings(self.start_canvas))
+        self.start_canvas.tag_bind('settings', '<Button-1>', lambda event:  settings.toggle_settings(self.start_canvas))
         self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: MainMenu.quit())
 
     def start_game(self):
-        self.start_canvas.destroy()
+        self.back_canvas.place_forget()
         LocalMultiplayerDots('#20D020', 'blue')
+
+    def toggle_main_menu(self):
+        if self.back_canvas.place_info() == {}:
+            self.back_canvas.place()
+        else:
+            self.back_canvas.place_forget()
 
     @staticmethod
     def quit():
