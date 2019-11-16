@@ -5,7 +5,6 @@ from pathlib import Path
 # Create tkinter root.
 root = Tk()
 root.title('Dots')
-# This is master canvas where this program draw Dots.
 
 
 class Resources:
