@@ -53,7 +53,7 @@ class MainMenu:
     def __init__(self):
         self.back_canvas = Canvas(root, width=1380, height=1080)
         self.start_canvas = Canvas(self.back_canvas, width=640, height=640, bg='grey', bd=0)
-        self.back_canvas.place()
+        self.back_canvas.pack()
         self.start_canvas.place(relx=0.5, rely=0, anchor='n')
 
         self.start_canvas.create_image(100, 10, image=Resources.logo_texture, anchor='nw')
@@ -72,7 +72,7 @@ class MainMenu:
         self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: MainMenu.quit())
 
     def start_game(self):
-        self.back_canvas.place_forget()
+        self.back_canvas.pack_forget()
         LocalMultiplayerDots('#20D020', 'blue')
 
     def toggle_main_menu(self):
@@ -94,7 +94,7 @@ class GameMenu:
                                            tag='game_quit')
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
         self.game_menu_button = self.master.create_image(0, 0, image=Resources.home_button, anchor='nw')
-        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.open_game_menu())
+        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.toggle_game_menu())
         root.bind('<Escape>', lambda event: self.toggle_game_menu())
 
     def toggle_game_menu(self):
@@ -156,7 +156,6 @@ class Dots:
                 if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
 
     def optim_clear(self, tracks):
-        print(0)
         if len(tracks) != 0:
             deleting = [tracks[0]]
             for __ in range(len(tracks)):
@@ -216,11 +215,11 @@ class Dots:
         self.position[1] = y
         w = self.width // (self.scale * 16) + 1
         h = self.height // (self.scale * 16) + 1
-        for i in range(len(self.points[x:x + w])):
+        for i in range(w):
             self.dots_canvas.create_line(((16 * i) + 8) * self.scale, 0, 
                                          ((i * 16) + 8) * self.scale, self.height, 
                                         fill='black')
-        for i in range(len(self.points[y:y + h])):
+        for i in range(h):
             self.dots_canvas.create_line(0, ((16 * i) + 8) * self.scale, 
                                          self.width, ((16 * i) + 8) * self.scale, 
                                         fill='black')
@@ -273,7 +272,6 @@ class Dots:
         pass
 
     def turn(self, x: int, y: int):
-        print(x, y)
         if x <= 64 and y <= 64:
             self.menu.toggle_game_menu()
         else:
@@ -295,5 +293,5 @@ class LocalMultiplayerDots(Dots):
         self.dots_canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
 
 
-MainMenu()
+main = MainMenu()
 root.mainloop()
