@@ -68,7 +68,8 @@ class Canvas(QPixmap):
 
         super().__init__(kwargs['width'], kwargs['height'])
 
-        self.fill(QColor(kwargs.get('color', 'white')))
+        self.color = kwargs.get('color', 'white')
+        self.fill(QColor(self.color))
         self.objects_tags = []
         self.objects = {'self': self}
 
@@ -97,22 +98,16 @@ class Canvas(QPixmap):
         self.new_object(tag, line, )
         painter.end()
 
-    def new_object(self, tag, obj):
-        self.objects_tags.append(tag)
-        self.objects[tag] = obj
+    def create_object(self, obj, x, y, master, tag):
+        self.objects_tags.insert()
+        self.objects[tag] = obj, x, y
+        self.update()
 
     def draw_obj(self, **kwargs):
         if 'obj' not in kwargs.keys():
             raise AttributeError
 
-        x, y, obj, master, tag = kwargs.get('x', 0), kwargs.get('y', 0), kwargs['obj'], \
-            self.objects[kwargs.get('master_tag', 'self')], kwargs.get('tag', None)
-
-        if not tag is None:
-            self.new_object(tag, obj)
-
-        if type(master) not in {QPixmap, Canvas}:
-           raise TypeError(tag)
+        x, y, obj = kwargs.get('x', 0), kwargs.get('y', 0), kwargs['obj']
 
         if type(obj) == Line:
             obj.draw(self)
@@ -122,7 +117,10 @@ class Canvas(QPixmap):
             func(painter, x, y, obj)
             painter.end()
 
-    def update(self, )
+    def update(self):
+        self.fill(QColor(self.color))
+        for tag in self.objects_tags:
+            self.draw_obj(self.objects[tag])
 
 
 class Data:
