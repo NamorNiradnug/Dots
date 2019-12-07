@@ -1,96 +1,93 @@
-from tkinter import Tk, Canvas
-from PIL import Image, ImageTk
+from graphics import *
+from PIL import Image, ImageQt
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import QColor, QImage
+from PyQt5.QtCore import Qt
+#from tkinter import Tk, Canvas
+#from PIL import Image, ImageTk
 from pathlib import Path
-
-# Create tkinter root.
-root = Tk()
-root.title('Dots')
 
 
 class Resources:
     # This is the structure for storing images.
     resources = Path('resources')
-    settings_button = ImageTk.PhotoImage(Image.open(resources / 'settings.png'))
-    singleplayer_button = ImageTk.PhotoImage(Image.open(resources / 'singleplayer.png'))
-    multiplayer_button = ImageTk.PhotoImage(Image.open(resources / 'multiplayer.png'))
-    home_button = ImageTk.PhotoImage(Image.open(resources / 'home.png'))
-    local_multiplayer_button = ImageTk.PhotoImage(Image.open(resources / 'local_multiplayer.png'))
-    quit_button = ImageTk.PhotoImage(Image.open(resources / 'quit.png'))
-    logo_texture = ImageTk.PhotoImage(Image.open(resources / 'menu_logo.png'))
-
+    settings_button = ImageQt.ImageQt(Image.open(resources / 'settings.png'))
+    singleplayer_button = ImageQt.ImageQt(Image.open(resources / 'singleplayer.png'))
+    multiplayer_button = ImageQt.ImageQt(Image.open(resources / 'multiplayer.png'))
+    home_button = ImageQt.ImageQt(Image.open(resources / 'home.png'))
+    local_multiplayer_button = ImageQt.ImageQt(Image.open(resources / 'local_multiplayer.png'))
+    quit_button = ImageQt.ImageQt(Image.open(resources / 'quit.png'))
+    logo_texture = ImageQt.ImageQt(Image.open(resources / 'menu_logo.png'))
+    
 
 class Settings:
     def __init__(self):
         self.colors = ['#20D020', 'blue']
         self.fullscreen = False
-        root.attributes('-fullscreen', self.fullscreen)
         self.sound_voice = 100
         self.draw_line_tracks = True
         self.dots_canvas_bg = 'white'
-        self.settings_canvas = Canvas(root, width=320, height=540, bg = 'red')
+        self.settings_canvas = Canvas(width=320, height=540, color = 'red')
 
     def toggle_settings(self, master, x=0, y=0):
-        if self.settings_canvas.place_info() == {}:
-            self.open_settings(x, y, master)
+        if 'settings' not in window.canvas.objects_tags:
+            self.open_settings(x, y)
         else:
             self.close_settings()
 
     def open_settings(self, x, y, master):
-        self.settings_canvas.place(x=x, y=y, anchor='center', in_=master)
-
+        window.canvas.create_object(x=x, y=y, tag='settings')
+        window.graphics_update()
+        
     def close_settings(self):
-        self.settings_canvas.place_forget()
+        window.canvas.delete_object('settings')
 
     def change_fullscreen(self):
         self.fullscreen = not self.fullscreen
-        root.attributes('-fullscreen', self.fullscreen)
+        window.toggle_full_screen()
 
 
-settings = Settings()
+#settings = Settings()
 
 
 class MainMenu:
     def __init__(self):
-        self.back_canvas = Canvas(root, width=1380, height=1080)
-        self.start_canvas = Canvas(self.back_canvas, width=640, height=640, bg='grey', bd=0)
-        self.back_canvas.pack()
-        self.start_canvas.place(relx=0.5, rely=0, anchor='n')
-
-        self.start_canvas.create_image(100, 10, image=Resources.logo_texture, anchor='nw')
-        self.start_canvas.create_image(560, 560, image=Resources.settings_button,
-                                       anchor='nw', tag='settings')
-        self.start_canvas.create_image(192, 200, image=Resources.singleplayer_button,
-                                       anchor='nw', tag='singleplayer')
-        self.start_canvas.create_image(192, 300, image=Resources.local_multiplayer_button,
-                                       anchor='nw', tag='local_multiplayer')
-        self.start_canvas.create_image(192, 400, image=Resources.multiplayer_button,
-                                       anchor='nw', tag='multiplayer')
-        self.start_canvas.create_image(192, 500, image=Resources.quit_button,
-                                       anchor='nw', tag='quit')
-        self.start_canvas.tag_bind('singleplayer', '<Button-1>', lambda event: self.start_game())
-        self.start_canvas.tag_bind('settings', '<Button-1>', lambda event:  settings.toggle_settings(self.start_canvas))
-        self.start_canvas.tag_bind('quit', '<Button-1>', lambda event: MainMenu.quit())
-
+        print(22)
+        self.start_canvas = Canvas(width=640, height=640, color='grey')
+        self.start_canvas.create_object(x=100, y=10, obj=QImage(Resources.logo_texture), 
+                                    tag='logo')
+        self.start_canvas.create_object(x=560, y=560, obj=QImage(Resources.settings_button),
+                                       tag='settings_button')
+        self.start_canvas.create_object(x=192, y=200, obj=QImage(Resources.singleplayer_button),
+                                       tag='singleplayer_button')
+        self.start_canvas.create_object(x=192, y=300, obj=QImage(Resources.local_multiplayer_button),
+                                       tag='local_multiplayer_button')
+        self.start_canvas.create_object(x=192, y=400, obj=QImage(Resources.multiplayer_button),
+                                       tag='multiplayer_button')
+        self.start_canvas.create_object(x=192, y=500, obj=QImage(Resources.quit_button),
+                                       tag='quit_button')
+        window.canvas.create_object(obj=self.start_canvas, x=400, y=40, tag='MainMenu')
+        window.graphics_update()
+        
     def start_game(self):
-        self.back_canvas.pack_forget()
+        window.canvas.delete_object('MainMenu')
         LocalMultiplayerDots('#20D020', 'blue')
 
-    def toggle_main_menu(self):
-        if self.back_canvas.place_info() == {}:
-            self.back_canvas.place()
-        else:
-            self.back_canvas.place_forget()
+  #  def toggle_main_menu(self):
+  #      if 'MainMenu' not in window.canvas.objects_tags:
+  #          self.start_canvas.place()
+  #      else:
+  #          self.back_canvas.place_forget()
 
     @staticmethod
     def quit():
-        root.quit()
+        app.quit()
 
 
 class GameMenu:
-    def __init__(self, canvas):
-        self.master = canvas
-        self.game_menu_canvas = Canvas(root, width=320, height=540, bg='grey', bd=0)
-        self.game_menu_canvas.create_image(160, 500, image=Resources.quit_button, anchor='center',
+    def __init__(self):
+        self.game_menu_canvas = Canvas(width=320, height=540, color='grey')
+        self.game_menu_canvas.create_object(x=160, y=500, image=QImage(Resources.quit_button),
                                            tag='game_quit')
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
         self.game_menu_button = self.master.create_image(0, 0, image=Resources.home_button, anchor='nw')
@@ -293,5 +290,9 @@ class LocalMultiplayerDots(Dots):
         self.dots_canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
 
 
-main = MainMenu()
-root.mainloop()
+if __name__ == '__main__':        
+    app = QApplication([])
+    window = DrawWindow()
+    window.show()
+    main = MainMenu()
+    app.exec_()

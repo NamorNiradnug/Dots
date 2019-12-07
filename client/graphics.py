@@ -13,8 +13,7 @@ class Line(QLine):
 
     def draw(self, master):
         painter = QPainter(master)
-        pen = QPen()
-        pen.setColor(QColor(self.fill))
+        pen = QPen(QColor(self.fill))
         pen.setWidth(self.width)
         painter.setPen(pen)
         painter.drawLine(self)
@@ -24,12 +23,13 @@ class Line(QLine):
 class Point(QPoint):
     def __init__(self, x, y, **kwargs):
         super().__init__(x, y)
-        self.radius = kwargs.get('rad', 1)
+        self.radius = kwargs.get('radius', 1)
         self.fill = kwargs.get('fill', 'black')
                                
     def draw(self, master):
         painter = QPainter(master)
         pen = QPen(QColor(self.fill))
+        pen.setWidth(self.radius)
         painter.setPen(pen)
         painter.drawPoint(self)
         painter.end()
@@ -41,12 +41,8 @@ class DrawWindow(QMainWindow):
         self.graphics_container = QLabel()
         self.setCentralWidget(self.graphics_container)
         self.canvas = Canvas(width=width, height=height)
-        self.canvas.create_object(obj=Line(0, 0, 200, 200, fill='red', width=6), tag='line1')
-        self.canvas.create_object(obj=QImage(Data.image), x=0, y=0, tag='imge')
-        self.canvas.create_object(obj=QImage(Data.image), x=90, y=90, tag='pop')
         self.mouse_press_events = {}
         self.key_press_events = {}
-        self.canvas.create_object(obj=Line(0, 0, 90, 90, width=10, fill='blue'), tag='point')
         self.graphics_update()
 
     def toggle_full_screen(self):
@@ -79,6 +75,7 @@ class DrawWindow(QMainWindow):
         self.graphics_container.setPixmap(self.canvas)
         self.update()
 
+
 class Canvas(QPixmap):
     def __init__(self, **kwargs):
         if 'width' not in kwargs.keys() or 'height' not in kwargs.keys():
@@ -92,17 +89,17 @@ class Canvas(QPixmap):
         self.objects = {'self': self}
 
     def create_object(self, **kwargs):
-        obj, x, y, master_tag, tag = kwargs['obj'], kwargs.get('x', None),\
-            kwargs.get('y', None), kwargs.get('master_tag', self.objects_tags[-1]), \
+        obj, x, y, master_tag, tag = kwargs['obj'], kwargs.get('x', 0),\
+            kwargs.get('y', 0), kwargs.get('master_tag', self.objects_tags[-1]), \
             kwargs['tag']
         self.objects_tags.insert(self.objects_tags.index(master_tag) + 1, tag)
         self.objects[tag] = obj, x, y
+        print(1)
         self.update()
 
     def draw_obj(self, *args):
         if type(args[0]) in {Line, Point}:
             func = Data.draw_functions[type(args[0])]
-            print(type(args[0]))
             func(args[0], self)
             return
 
@@ -134,14 +131,12 @@ class Data:
                       QImage: QPainter.drawImage, Point: Point.draw}
     image = ImageQt.ImageQt(Image.open('resources/settings.png'))
 
-
-app = QApplication(sys.argv)
-window = DrawWindow(900, 900)
-# for i in range(800):
-#    for j in range(800):
-#        window.mouse_bind(1, i, j, print, (i, j))
-# window.key_bind(65, print, ('Hello!', "You pressed 'A'."))
-window.canvas.create_object(obj=Line(90, 90, 30, 200, width=5), tag='ninu')
-window.graphics_update()
-window.show()
-app.exec_()
+    @staticmethod
+    def something(window):
+        try:
+            for i in range(10):
+                window.canvas.delete_object('pin_code' + str(i))            
+        except:
+            for i in range(10):
+                window.canvas.create_object(obj=Point(10 * i, 10, radius=5), tag='pin_code' + str(i))
+        window.graphics_update()
