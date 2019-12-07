@@ -1,24 +1,19 @@
 from graphics import *
+from resources import *
 from PIL import Image, ImageQt
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QColor, QImage
 from PyQt5.QtCore import Qt
-#from tkinter import Tk, Canvas
-#from PIL import Image, ImageTk
 from pathlib import Path
 
+app = QApplication([])
+screen_size = app.desktop().screenGeometry()
+screen_width = screen_size.width()
+screen_height = screen_size.height()
+#window = DrawWindow(screen_width, screen_height)
+window = DrawWindow(900, 900)
+window.show()
 
-class Resources:
-    # This is the structure for storing images.
-    resources = Path('resources')
-    settings_button = ImageQt.ImageQt(Image.open(resources / 'settings.png'))
-    singleplayer_button = ImageQt.ImageQt(Image.open(resources / 'singleplayer.png'))
-    multiplayer_button = ImageQt.ImageQt(Image.open(resources / 'multiplayer.png'))
-    home_button = ImageQt.ImageQt(Image.open(resources / 'home.png'))
-    local_multiplayer_button = ImageQt.ImageQt(Image.open(resources / 'local_multiplayer.png'))
-    quit_button = ImageQt.ImageQt(Image.open(resources / 'quit.png'))
-    logo_texture = ImageQt.ImageQt(Image.open(resources / 'menu_logo.png'))
-    
 
 class Settings:
     def __init__(self):
@@ -26,58 +21,41 @@ class Settings:
         self.fullscreen = False
         self.sound_voice = 100
         self.draw_line_tracks = True
-        self.dots_canvas_bg = 'white'
-        self.settings_canvas = Canvas(width=320, height=540, color = 'red')
+        self.dots_canvas_color = 'white'
+        self.settings_canvas = Canvas(width=320, height=540, color='red')
 
-    def toggle_settings(self, master, x=0, y=0):
+    def toggle_settings(self, x=0, y=0):
         if 'settings' not in window.canvas.objects_tags:
             self.open_settings(x, y)
         else:
             self.close_settings()
 
-    def open_settings(self, x, y, master):
+    def open_settings(self, x, y):
         window.canvas.create_object(x=x, y=y, tag='settings')
         window.graphics_update()
-        
+
     def close_settings(self):
         window.canvas.delete_object('settings')
+        window.graphics_update()
 
     def change_fullscreen(self):
         self.fullscreen = not self.fullscreen
         window.toggle_full_screen()
 
 
-#settings = Settings()
+settings = Settings()
 
 
 class MainMenu:
     def __init__(self):
-        print(22)
-        self.start_canvas = Canvas(width=640, height=640, color='grey')
-        self.start_canvas.create_object(x=100, y=10, obj=QImage(Resources.logo_texture), 
-                                    tag='logo')
-        self.start_canvas.create_object(x=560, y=560, obj=QImage(Resources.settings_button),
-                                       tag='settings_button')
-        self.start_canvas.create_object(x=192, y=200, obj=QImage(Resources.singleplayer_button),
-                                       tag='singleplayer_button')
-        self.start_canvas.create_object(x=192, y=300, obj=QImage(Resources.local_multiplayer_button),
-                                       tag='local_multiplayer_button')
-        self.start_canvas.create_object(x=192, y=400, obj=QImage(Resources.multiplayer_button),
-                                       tag='multiplayer_button')
-        self.start_canvas.create_object(x=192, y=500, obj=QImage(Resources.quit_button),
-                                       tag='quit_button')
+        self.start_canvas = Data.main_menu_canvas()
         window.canvas.create_object(obj=self.start_canvas, x=400, y=40, tag='MainMenu')
+        window.canvas.rect_mouse_bind(1, 560, 560, 624, 624, toggle_settings, arg=(0, 0), 'MainMenu')
         window.graphics_update()
-        
+
     def start_game(self):
         window.canvas.delete_object('MainMenu')
         LocalMultiplayerDots('#20D020', 'blue')
-
-  #  def toggle_main_menu(self):
-  #      if 'MainMenu' not in window.canvas.objects_tags:
-  #          self.start_canvas.place()
-  #      else:
-  #          self.back_canvas.place_forget()
 
     @staticmethod
     def quit():
@@ -86,11 +64,8 @@ class MainMenu:
 
 class GameMenu:
     def __init__(self):
-        self.game_menu_canvas = Canvas(width=320, height=540, color='grey')
-        self.game_menu_canvas.create_object(x=160, y=500, image=QImage(Resources.quit_button),
-                                           tag='game_quit')
+        self.game_menu_canvas = Data.game_menu_canvas()
         self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
-        self.game_menu_button = self.master.create_image(0, 0, image=Resources.home_button, anchor='nw')
         self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.toggle_game_menu())
         root.bind('<Escape>', lambda event: self.toggle_game_menu())
 
@@ -102,7 +77,7 @@ class GameMenu:
 
     def open_game_menu(self):
         self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
-    
+
     def close_game_menu(self):
         self.game_menu_canvas.place_forget()
 
@@ -115,8 +90,7 @@ class GameMenu:
 
 class Dots:
     def __init__(self, color1: str = settings.colors[0], color2: str = settings.colors[1],
-                 width: int = root.winfo_screenwidth(),
-                 height: int = root.winfo_screenheight()):
+                 width: int = screen_width, height: int = screen_height):
         self.height = height
         self.width = width
         self.dots_canvas = Canvas(root, bg=settings.dots_canvas_bg, bd=0)
@@ -171,8 +145,8 @@ class Dots:
 
     def do_connect(self, point: (int, int)):
         if settings.draw_line_tracks:
-            self.tracks.update(set([(point, i) for i in Dots.get_adjacent(point)  
-                if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]))
+            self.tracks.update(set([(point, i) for i in Dots.get_adjacent(point)
+                                    if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]))
         self.find_triangulars(point)
         connected = {point}
         used = []
@@ -201,8 +175,8 @@ class Dots:
     def draw_point(self, point_type: int, x: int, y: int):
         if point_type != 0:
             self.dots_canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
-                               (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
-                               fill=self.colors[point_type])
+                                         (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
+                                         fill=self.colors[point_type])
 
     def find_eaten(self, point):
         pass
@@ -213,27 +187,27 @@ class Dots:
         w = self.width // (self.scale * 16) + 1
         h = self.height // (self.scale * 16) + 1
         for i in range(w):
-            self.dots_canvas.create_line(((16 * i) + 8) * self.scale, 0, 
-                                         ((i * 16) + 8) * self.scale, self.height, 
-                                        fill='black')
+            self.dots_canvas.create_line(((16 * i) + 8) * self.scale, 0,
+                                         ((i * 16) + 8) * self.scale, self.height,
+                                         fill='black')
         for i in range(h):
-            self.dots_canvas.create_line(0, ((16 * i) + 8) * self.scale, 
-                                         self.width, ((16 * i) + 8) * self.scale, 
-                                        fill='black')
+            self.dots_canvas.create_line(0, ((16 * i) + 8) * self.scale,
+                                         self.width, ((16 * i) + 8) * self.scale,
+                                         fill='black')
             for j in range(len(self.points[i][x:x + w])):
                 self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
         for i in self.tracks:
             if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
                     <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
                 self.dots_canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale,
-                                   ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
-                                   ((i[1][0] - self.position[0]) * 16 + 8) * self.scale,
-                                   ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
-                                   fill=self.colors[self.points[i[0][1]][i[0][0]]], width=2 * self.scale)
+                                             ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
+                                             ((i[1][0] - self.position[0]) * 16 + 8) * self.scale,
+                                             ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
+                                             fill=self.colors[self.points[i[0][1]][i[0][0]]], width=2 * self.scale)
         self.menu.redraw()
 
-
  # TODO set_scale
+
     def set_scale(self, delta: int):
         scale = int(self.scale * (2 ** (delta // (abs(delta)))))
         if scale != 1 and scale != 16:
@@ -290,9 +264,5 @@ class LocalMultiplayerDots(Dots):
         self.dots_canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
 
 
-if __name__ == '__main__':        
-    app = QApplication([])
-    window = DrawWindow()
-    window.show()
-    main = MainMenu()
-    app.exec_()
+main = MainMenu()
+app.exec_()

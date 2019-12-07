@@ -1,8 +1,8 @@
-import sys
 from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication
 from PyQt5.QtGui import QPixmap, QPainter, QPen, QColor, QImage
 from PyQt5.QtCore import Qt, QLine, QPoint
 from PIL import Image, ImageQt
+from resources import Resources
 
 
 class Line(QLine):
@@ -25,7 +25,7 @@ class Point(QPoint):
         super().__init__(x, y)
         self.radius = kwargs.get('radius', 1)
         self.fill = kwargs.get('fill', 'black')
-                               
+
     def draw(self, master):
         painter = QPainter(master)
         pen = QPen(QColor(self.fill))
@@ -33,14 +33,15 @@ class Point(QPoint):
         painter.setPen(pen)
         painter.drawPoint(self)
         painter.end()
-        
+
+
 class DrawWindow(QMainWindow):
-    def __init__(self, width=1980, height=1280):
+    def __init__(self, width=1920, height=1080):
         super().__init__()
         self.setWindowTitle('Dots')
         self.graphics_container = QLabel()
         self.setCentralWidget(self.graphics_container)
-        self.canvas = Canvas(width=width, height=height)
+        self.canvas = Canvas(width=width, height=height, master_window=self)
         self.mouse_press_events = {}
         self.key_press_events = {}
         self.graphics_update()
@@ -65,7 +66,7 @@ class DrawWindow(QMainWindow):
             data = self.mouse_press_events[(event.button(), event.x(), event.y())]
             data[0](*data[1])
 
-    def key_bind(self, event_key, function, arg):
+    def key_bind(self, event_key, function, arg=()):
         self.key_press_events[event_key] = (function, arg)
 
     def mouse_bind(self, event_button, x, y, function, arg=()):
@@ -75,6 +76,24 @@ class DrawWindow(QMainWindow):
         self.graphics_container.setPixmap(self.canvas)
         self.update()
 
+    def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=()):
+        arg = list(arg)
+        x_parameter = []
+        y_parameter = []
+        for a in range(len(arg)):
+            if arg[a] == '__x__':
+                x_parameter.append(a)
+            elif arg[a] == '__y__':
+                y_parameter.append(a)
+        for i in range(int(x1), int(x2) + 1):
+            for j in range(int(y1), int(y2) + 1):
+                for x in x_parameter:
+                    arg[x] = i
+                for y in y_parameter:
+                    arg[y] = j
+                self.mouse_bind(event_button, i, j, function, tuple(arg))
+# TODO unbind methods
+
 
 class Canvas(QPixmap):
     def __init__(self, **kwargs):
@@ -82,19 +101,37 @@ class Canvas(QPixmap):
             raise AttributeError
 
         super().__init__(kwargs['width'], kwargs['height'])
-
+        master_window = kwargs.get('master_window', None)
+        if master_window is not None:
+            self.master_window = master_window
         self.color = kwargs.get('color', 'white')
         self.fill(QColor(self.color))
         self.objects_tags = ['self']
-        self.objects = {'self': self}
+        self.objects = {'self': (self, 0, 0)}
 
     def create_object(self, **kwargs):
-        obj, x, y, master_tag, tag = kwargs['obj'], kwargs.get('x', 0),\
-            kwargs.get('y', 0), kwargs.get('master_tag', self.objects_tags[-1]), \
-            kwargs['tag']
+        obj, x, y, master_tag, tag, relx, rely = kwargs['obj'], kwargs.get('x', 0),\
+            kwargs.get('y', 0), kwargs.get('master_tag', 'self'),\
+            kwargs['tag'], kwargs.get('relx', None), kwargs.get('rely', None)
+
+        if tag == 'self':
+            raise KeyError
+
+        if relx is not None:
+            x = self.objects[master_tag][0].size().width() * relx -\
+                obj.size().width() * .5
+        if rely is not None:
+            y = self.objects[master_tag][0].size().height() * rely -\
+                obj.size().height() * .5
+
+        if master_tag == 'self':
+            master_tag = self.objects_tags[-1]
+            self.objects[tag] = obj, x, y
+        else:
+            self.objects_tags[tag] = obj, x + self.objects[master_tag][1],\
+                y + self.objects[master_tag][2]
+
         self.objects_tags.insert(self.objects_tags.index(master_tag) + 1, tag)
-        self.objects[tag] = obj, x, y
-        print(1)
         self.update()
 
     def draw_obj(self, *args):
@@ -105,7 +142,7 @@ class Canvas(QPixmap):
 
         if len(args) != 3:
             raise AttributeError
-        
+
         obj, x, y = args
         painter = QPainter(self)
         func = Data.draw_functions[type(obj)]
@@ -125,6 +162,19 @@ class Canvas(QPixmap):
         else:
             raise KeyError
 
+    def mouse_bind(self, event_button, x, y, function, arg=(), tag='self'):
+        self.master_window.mouse_press_events[(event_button, self.objects[tag][1] + x, self.objects[tag][2] + y)] = (function, arg)
+
+    # TODO unbind methods
+
+    def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=(), tag='self'):
+        x1 += self.objects[tag][1]
+        x2 += self.objects[tag][1]
+        y1 += self.objects[tag][2]
+        y2 += self.objects[tag][2]
+        self.master_window.rect_mouse_bind(event_button, x1, y1, x2, y2, function, arg)
+
+
 class Data:
     draw_functions = {QPixmap: QPainter.drawPixmap, Canvas: QPainter.drawPixmap,
                       QLine: QPainter.drawLine, Line: Line.draw,
@@ -132,11 +182,25 @@ class Data:
     image = ImageQt.ImageQt(Image.open('resources/settings.png'))
 
     @staticmethod
-    def something(window):
-        try:
-            for i in range(10):
-                window.canvas.delete_object('pin_code' + str(i))            
-        except:
-            for i in range(10):
-                window.canvas.create_object(obj=Point(10 * i, 10, radius=5), tag='pin_code' + str(i))
-        window.graphics_update()
+    def main_menu_canvas():
+        start_canvas = Canvas(width=640, height=640, color='grey')
+        start_canvas.create_object(x=100, y=10, obj=QImage(Resources.logo_texture),
+                                   tag='logo')
+        start_canvas.create_object(x=560, y=560, obj=QImage(Resources.settings_button),
+                                   tag='settings_button')
+        start_canvas.create_object(x=192, y=200, obj=QImage(Resources.singleplayer_button),
+                                   tag='singleplayer_button')
+        start_canvas.create_object(x=192, y=300, obj=QImage(Resources.local_multiplayer_button),
+                                   tag='local_multiplayer_button')
+        start_canvas.create_object(x=192, y=400, obj=QImage(Resources.multiplayer_button),
+                                   tag='multiplayer_button')
+        start_canvas.create_object(x=192, y=500, obj=QImage(Resources.quit_button),
+                                   tag='quit_button')
+        return start_canvas
+
+    @staticmethod
+    def game_menu_canvas():
+        game_menu_canvas = Canvas(width=320, height=540, color='grey')
+        game_menu_canvas.create_object(x=160, y=500, image=QImage(Resources.quit_button),
+                                       tag='game_quit')
+        return game_menu_canvas
