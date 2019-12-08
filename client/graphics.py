@@ -1,8 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication
 from PyQt5.QtGui import QPixmap, QPainter, QPen, QColor, QImage
 from PyQt5.QtCore import Qt, QLine, QPoint
-from PIL import Image, ImageQt
-from resources import Resources
 
 
 class Line(QLine):
@@ -20,7 +18,7 @@ class Line(QLine):
         painter.end()
 
 
-class Point(QPoint):
+class Circle(QPoint):
     def __init__(self, x, y, **kwargs):
         super().__init__(x, y)
         self.radius = kwargs.get('radius', 1)
@@ -62,15 +60,15 @@ class DrawWindow(QMainWindow):
             data[0](*data[1])
 
     def mousePressEvent(self, event):
-        if (event.button(), event.x(), event.y()) in self.mouse_press_events.keys():
-            data = self.mouse_press_events[(event.button(), event.x(), event.y())]
+        if (event.x(), event.y()) in self.mouse_press_events.keys():
+            data = self.mouse_press_events[event.x(), event.y()][event.button()]
             data[0](*data[1])
 
-    def key_bind(self, event_key, function, arg=()):
-        self.key_press_events[event_key] = (function, arg)
+    def key_bind(self, event_name, function, arg=()):
+        self.key_press_events[Data.events_strings[event_name]] = (function, arg)
 
     def mouse_bind(self, event_button, x, y, function, arg=()):
-        self.mouse_press_events[(event_button, x, y)] = (function, arg)
+        self.mouse_press_events[(x, y)] = {event_button: (function, arg)}
 
     def graphics_update(self):
         self.graphics_container.setPixmap(self.canvas)
@@ -92,8 +90,32 @@ class DrawWindow(QMainWindow):
                 for y in y_parameter:
                     arg[y] = j
                 self.mouse_bind(event_button, i, j, function, tuple(arg))
-# TODO unbind methods
+    # TODO unbind methods
 
+    def key_unbind(self, event_name):
+        if event_name == 'all':
+            self.key_press_events = {}
+        else:
+            self.key_press_events.pop(Data.events_strings[event_name])
+
+    def mouse_unbind(self, button, x=None, y=None):
+        if button == 'all':
+            if x is None and y is None:
+                self.mouse_press_events = {}
+            else:
+                if (x, y) in self.mouse_press_events.keys():
+                    self.mouse_press_events.pop((x, y))                        
+        else:
+            if (x, y) in self.mouse_press_events.keys():
+                if button in self.mouse_press_events[(x, y)]:
+                    self.key_press_events[(x, y)].pop(button)
+
+    def rect_mouse_unbind(self, button, x1, y1, x2, y2):
+        for i in range(int(x1), int(x2) + 1):
+            for j in range(int(y1), int(y2) + 1):
+                self.mouse_unbind(button, i, j)
+    #TODO save data about events in rect else rect_mouse_event work very slow.
+ 
 
 class Canvas(QPixmap):
     def __init__(self, **kwargs):
@@ -107,24 +129,29 @@ class Canvas(QPixmap):
         self.color = kwargs.get('color', 'white')
         self.fill(QColor(self.color))
         self.objects_tags = ['self']
-        self.objects = {'self': (self, 0, 0)}
+        self.objects = {'self': (self, 0, 0), \
+                        None: (None, 0, 0)}
 
     def create_object(self, **kwargs):
         obj, x, y, master_tag, tag, relx, rely = kwargs['obj'], kwargs.get('x', 0),\
-            kwargs.get('y', 0), kwargs.get('master_tag', 'self'),\
+            kwargs.get('y', 0), kwargs.get('master_tag', None),\
             kwargs['tag'], kwargs.get('relx', None), kwargs.get('rely', None)
 
         if tag == 'self':
             raise KeyError
 
+        master_tag_copy = master_tag
+        if master_tag is None:
+            master_tag = 'self'
         if relx is not None:
             x = self.objects[master_tag][0].size().width() * relx -\
                 obj.size().width() * .5
         if rely is not None:
             y = self.objects[master_tag][0].size().height() * rely -\
                 obj.size().height() * .5
-
-        if master_tag == 'self':
+        
+        master_tag = master_tag_copy
+        if master_tag is None:
             master_tag = self.objects_tags[-1]
             self.objects[tag] = obj, x, y
         else:
@@ -135,7 +162,7 @@ class Canvas(QPixmap):
         self.update()
 
     def draw_obj(self, *args):
-        if type(args[0]) in {Line, Point}:
+        if type(args[0]) in {Line, Circle}:
             func = Data.draw_functions[type(args[0])]
             func(args[0], self)
             return
@@ -162,10 +189,9 @@ class Canvas(QPixmap):
         else:
             raise KeyError
 
-    def mouse_bind(self, event_button, x, y, function, arg=(), tag='self'):
-        self.master_window.mouse_press_events[(event_button, self.objects[tag][1] + x, self.objects[tag][2] + y)] = (function, arg)
-
-    # TODO unbind methods
+    def mouse_bind(self, event_button, x, y, function, arg=(), tag='self'):        
+        self.master_window.mouse_bind(event_button, x + self.objects[tag][1], \
+                                      y + self.objects[tag][2], function, arg)
 
     def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=(), tag='self'):
         x1 += self.objects[tag][1]
@@ -174,33 +200,28 @@ class Canvas(QPixmap):
         y2 += self.objects[tag][2]
         self.master_window.rect_mouse_bind(event_button, x1, y1, x2, y2, function, arg)
 
+    def mouse_unbind(self, event_button, x, y, tag='self'):
+        self.master_window.mouse_unbind(event_button, x + self.objects[tag][1], \
+                                      y + self.objects[tag][2])
+        
+    def rect_mouse_unbind(self, event_button, x1, y1, x2, y2, tag='self'):
+        x1 += self.objects[tag][1]
+        x2 += self.objects[tag][1]
+        y1 += self.objects[tag][2]
+        y2 += self.objects[tag][2]
+        self.master_window.rect_mouse_unbind(event_button, x1, y1, x2, y2)        
+
 
 class Data:
     draw_functions = {QPixmap: QPainter.drawPixmap, Canvas: QPainter.drawPixmap,
                       QLine: QPainter.drawLine, Line: Line.draw,
-                      QImage: QPainter.drawImage, Point: Point.draw}
-    image = ImageQt.ImageQt(Image.open('resources/settings.png'))
-
+                      QImage: QPainter.drawImage, Circle: Circle.draw}
+    events_strings = {'Esc': 16777216, 'Alt': 16777251, 'Ctrl': 16777249, 'Shift': 16777248, 'Space': 32}
+    
     @staticmethod
-    def main_menu_canvas():
-        start_canvas = Canvas(width=640, height=640, color='grey')
-        start_canvas.create_object(x=100, y=10, obj=QImage(Resources.logo_texture),
-                                   tag='logo')
-        start_canvas.create_object(x=560, y=560, obj=QImage(Resources.settings_button),
-                                   tag='settings_button')
-        start_canvas.create_object(x=192, y=200, obj=QImage(Resources.singleplayer_button),
-                                   tag='singleplayer_button')
-        start_canvas.create_object(x=192, y=300, obj=QImage(Resources.local_multiplayer_button),
-                                   tag='local_multiplayer_button')
-        start_canvas.create_object(x=192, y=400, obj=QImage(Resources.multiplayer_button),
-                                   tag='multiplayer_button')
-        start_canvas.create_object(x=192, y=500, obj=QImage(Resources.quit_button),
-                                   tag='quit_button')
-        return start_canvas
-
-    @staticmethod
-    def game_menu_canvas():
-        game_menu_canvas = Canvas(width=320, height=540, color='grey')
-        game_menu_canvas.create_object(x=160, y=500, image=QImage(Resources.quit_button),
-                                       tag='game_quit')
-        return game_menu_canvas
+    def to_keyboard_event_key(event_name):
+        if len(event_name) == 1:
+            return ord(event_name)
+        else:
+            return Data.events_strings[event_name]
+        

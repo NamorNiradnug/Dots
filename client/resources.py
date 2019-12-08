@@ -1,4 +1,5 @@
 from PIL import Image, ImageQt
+from pathlib import Path
 
 
 class Resources:
