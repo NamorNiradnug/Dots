@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QLabel, QMainWindow, QApplication
+from PyQt5.QtWidgets import QLabel, QMainWindow
 from PyQt5.QtGui import QPixmap, QPainter, QPen, QColor, QImage
-from PyQt5.QtCore import Qt, QLine, QPoint
+from PyQt5.QtCore import QLine, QPoint
 
 
 class Line(QLine):
@@ -39,7 +39,7 @@ class DrawWindow(QMainWindow):
         self.setWindowTitle('Dots')
         self.graphics_container = QLabel()
         self.setCentralWidget(self.graphics_container)
-        self.canvas = Canvas(width=width, height=height, master_window=self)
+        self.canvas = Canvas(width=width, height=height, master=self)
         self.mouse_press_events = {}
         self.key_press_events = {}
         self.graphics_update()
@@ -54,43 +54,30 @@ class DrawWindow(QMainWindow):
         self.graphics_container.pixmap().fill(QColor('green'))
         self.graphics_container.update()
 
+    def graphics_update(self):
+        self.graphics_container.setPixmap(self.canvas)
+        self.update()
+
     def keyPressEvent(self, event):
         if event.key() in self.key_press_events.keys():
             data = self.key_press_events[event.key()]
             data[0](*data[1])
 
     def mousePressEvent(self, event):
-        if (event.x(), event.y()) in self.mouse_press_events.keys():
-            data = self.mouse_press_events[event.x(), event.y()][event.button()]
-            data[0](*data[1])
+        for button in self.mouse_press_events.keys():
+            if button[0] < event.x() < button[2] and \
+               button[1] < event.y() < button[3] and \
+               event.button() == button[4]:
+                arg = self.mouse_press_events[button][1]
+                for i in range(len(arg)):
+                    if arg[i] == '__x__':
+                        arg[i] = event.x()
+                    if arg[i] == '__y__':
+                        arg[i] = event.y()
+                self.mouse_press_events[button][0](*arg)
 
     def key_bind(self, event_name, function, arg=()):
         self.key_press_events[Data.events_strings[event_name]] = (function, arg)
-
-    def mouse_bind(self, event_button, x, y, function, arg=()):
-        self.mouse_press_events[(x, y)] = {event_button: (function, arg)}
-
-    def graphics_update(self):
-        self.graphics_container.setPixmap(self.canvas)
-        self.update()
-
-    def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=()):
-        arg = list(arg)
-        x_parameter = []
-        y_parameter = []
-        for a in range(len(arg)):
-            if arg[a] == '__x__':
-                x_parameter.append(a)
-            elif arg[a] == '__y__':
-                y_parameter.append(a)
-        for i in range(int(x1), int(x2) + 1):
-            for j in range(int(y1), int(y2) + 1):
-                for x in x_parameter:
-                    arg[x] = i
-                for y in y_parameter:
-                    arg[y] = j
-                self.mouse_bind(event_button, i, j, function, tuple(arg))
-    # TODO unbind methods
 
     def key_unbind(self, event_name):
         if event_name == 'all':
@@ -98,24 +85,30 @@ class DrawWindow(QMainWindow):
         else:
             self.key_press_events.pop(Data.events_strings[event_name])
 
-    def mouse_unbind(self, button, x=None, y=None):
-        if button == 'all':
-            if x is None and y is None:
-                self.mouse_press_events = {}
-            else:
-                if (x, y) in self.mouse_press_events.keys():
-                    self.mouse_press_events.pop((x, y))                        
-        else:
-            if (x, y) in self.mouse_press_events.keys():
-                if button in self.mouse_press_events[(x, y)]:
-                    self.key_press_events[(x, y)].pop(button)
+# I think this functions doesn't need:
+    # def mouse_bind(self, event_button, x, y, function, arg=()):
+    #     self.rect_mouse_bind(event_button, x, y, x, y, function, arg)
 
-    def rect_mouse_unbind(self, button, x1, y1, x2, y2):
-        for i in range(int(x1), int(x2) + 1):
-            for j in range(int(y1), int(y2) + 1):
-                self.mouse_unbind(button, i, j)
-    #TODO save data about events in rect else rect_mouse_event work very slow.
- 
+    # def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=()):
+        # self.mouse_press_events[(x1, y1, x2, y2, event_button)] = function, arg
+
+    # def mouse_unbind(self, button, x=None, y=None):
+        # if button == 'all':
+            # if x is None and y is None:
+                # self.mouse_press_events = {}
+            # else:
+                # if (x, y) in self.mouse_press_events.keys():
+                    # self.mouse_press_events.pop((x, y))
+        # else:
+            # if (x, y) in self.mouse_press_events.keys():
+                # if button in self.mouse_press_events[(x, y)]:
+                    # self.key_press_events[(x, y)].pop(button)
+
+    # def rect_mouse_unbind(self, button, x1, y1, x2, y2):
+        # for i in range(int(x1), int(x2) + 1):
+            # for j in range(int(y1), int(y2) + 1):
+                # self.mouse_unbind(button, i, j)
+
 
 class Canvas(QPixmap):
     def __init__(self, **kwargs):
@@ -123,13 +116,13 @@ class Canvas(QPixmap):
             raise AttributeError
 
         super().__init__(kwargs['width'], kwargs['height'])
-        master_window = kwargs.get('master_window', None)
-        if master_window is not None:
-            self.master_window = master_window
+        master = kwargs.get('master', None)
+        if master is not None:
+            self.master = master
         self.color = kwargs.get('color', 'white')
         self.fill(QColor(self.color))
         self.objects_tags = ['self']
-        self.objects = {'self': (self, 0, 0), \
+        self.objects = {'self': (self, 0, 0),
                         None: (None, 0, 0)}
 
     def create_object(self, **kwargs):
@@ -149,7 +142,7 @@ class Canvas(QPixmap):
         if rely is not None:
             y = self.objects[master_tag][0].size().height() * rely -\
                 obj.size().height() * .5
-        
+
         master_tag = master_tag_copy
         if master_tag is None:
             master_tag = self.objects_tags[-1]
@@ -189,27 +182,36 @@ class Canvas(QPixmap):
         else:
             raise KeyError
 
-    def mouse_bind(self, event_button, x, y, function, arg=(), tag='self'):        
-        self.master_window.mouse_bind(event_button, x + self.objects[tag][1], \
-                                      y + self.objects[tag][2], function, arg)
+    def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=()):
+        if type(self.master) == DrawWindow:
+            for old_button in self.master.mouse_press_events.copy().keys():
+                if Data.is_intersection(old_button[:4], (x1, y1, x2, y2)):
+                    self.master.mouse_press_events.pop(old_button)
+            self.master.mouse_press_events[x1, y1, x2, y2, event_button] = function, arg
+       # TODO complete this function!!
+       # else:
 
-    def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=(), tag='self'):
+    def rect_mouse_unbind(self, x1, y1, x2, y2, tag='self'):
         x1 += self.objects[tag][1]
         x2 += self.objects[tag][1]
         y1 += self.objects[tag][2]
         y2 += self.objects[tag][2]
-        self.master_window.rect_mouse_bind(event_button, x1, y1, x2, y2, function, arg)
+        self.rect_mouse_bind(1, x1, y1, x2, y2, print, ())
+        self.master.mouse_press_events.pop((x1, y1, x2, y2, 1))
 
-    def mouse_unbind(self, event_button, x, y, tag='self'):
-        self.master_window.mouse_unbind(event_button, x + self.objects[tag][1], \
-                                      y + self.objects[tag][2])
-        
-    def rect_mouse_unbind(self, event_button, x1, y1, x2, y2, tag='self'):
-        x1 += self.objects[tag][1]
-        x2 += self.objects[tag][1]
-        y1 += self.objects[tag][2]
-        y2 += self.objects[tag][2]
-        self.master_window.rect_mouse_unbind(event_button, x1, y1, x2, y2)        
+    def create_button(self, event_button, button_tag, function, arg=()):
+        button_obj = self.objects[button_tag]
+        self.rect_mouse_bind(event_button, button_obj[1], button_obj[2],
+                             button_obj[1] + button_obj[0].size().width(),
+                             button_obj[2] + button_obj[0].size().height(),
+                             function, arg)
+
+    def delete_button(self, event_button, button_tag):
+        button_obj = self.objects[button_tag]
+        self.master.mouse_press_events.pop((button_obj[1], button_obj[2],
+                                            button_obj[1] + button_obj[0].size().width(),
+                                            button_obj[2] + button_obj[0].size().height(),
+                                            event_button))
 
 
 class Data:
@@ -217,11 +219,24 @@ class Data:
                       QLine: QPainter.drawLine, Line: Line.draw,
                       QImage: QPainter.drawImage, Circle: Circle.draw}
     events_strings = {'Esc': 16777216, 'Alt': 16777251, 'Ctrl': 16777249, 'Shift': 16777248, 'Space': 32}
-    
+
     @staticmethod
     def to_keyboard_event_key(event_name):
         if len(event_name) == 1:
             return ord(event_name)
         else:
             return Data.events_strings[event_name]
-        
+
+    @staticmethod
+    def is_intersection(rect1: tuple, rect2: tuple):
+        if (rect2[0] < rect1[0] < rect2[2] and rect2[1] < rect1[1] < rect2[3]) or \
+           (rect2[0] < rect1[0] < rect2[2] and rect2[1] < rect1[3] < rect2[3]) or \
+           (rect2[0] < rect1[2] < rect2[2] and rect2[1] < rect1[1] < rect2[3]) or \
+           (rect2[0] < rect1[2] < rect2[2] and rect2[1] < rect1[3] < rect2[3]) or \
+           (rect1[0] < rect2[0] < rect1[2] and rect1[1] < rect2[1] < rect1[3]) or \
+           (rect1[0] < rect2[0] < rect1[2] and rect1[1] < rect2[3] < rect1[3]) or \
+           (rect1[0] < rect2[2] < rect1[2] and rect1[1] < rect2[1] < rect1[3]) or \
+           (rect1[0] < rect2[2] < rect1[2] and rect1[1] < rect2[3] < rect1[3]):
+            return True
+        return False
+

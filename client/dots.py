@@ -1,6 +1,5 @@
 from graphics import DrawWindow, Canvas, Line, Circle
 from resources import Resources
-from PIL import Image, ImageQt
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QColor, QImage
 
@@ -12,12 +11,13 @@ screen_height = screen_size.height()
 window = DrawWindow(900, 900)
 window.show()
 
+
 class Canvases:
     @staticmethod
     def main_menu_canvas():
         start_canvas = Canvas(width=640, height=640, color='grey')
         start_canvas.create_object(x=.5, y=10, obj=QImage(Resources.logo_texture),
-                                       tag='logo')
+                                   tag='logo')
         start_canvas.create_object(x=560, y=560, obj=QImage(Resources.settings_button),
                                    tag='settings_button')
         start_canvas.create_object(relx=.5, y=200, obj=QImage(Resources.singleplayer_button),
@@ -29,7 +29,7 @@ class Canvases:
         start_canvas.create_object(relx=.5, y=500, obj=QImage(Resources.quit_button),
                                    tag='quit_button')
         return start_canvas
-    
+
     @staticmethod
     def game_menu_canvas():
         game_menu_canvas = Canvas(width=320, height=540, color='grey')
@@ -42,13 +42,13 @@ class Canvases:
         settings_canvas = Canvas(width=320, height=540, color='red')
         # TODO draw on settings canvas
         return settings_canvas
-    
+
 
 class Settings:
     def __init__(self):
         self.colors = ['#20D020', 'blue']
         self.fullscreen = False
-        #self.change_fullscreen()
+        # self.change_fullscreen()
         self.sound_voice = 50
         self.draw_line_tracks = True
         self.dots_canvas_color = 'white'
@@ -63,10 +63,8 @@ class Settings:
         window.graphics_update()
 
     def open_settings(self, x, y):
-        print(1)
         window.canvas.create_object(obj=self.settings_canvas, x=x, y=y, tag='settings')
-        window.rect_mouse_unbind('all', x, y, x+320, y+540)
-        #window.rect_mouse_bind(1, x, y, x+320, y+540)
+        window.canvas.rect_mouse_unbind(x, y, x + 320, y + 540)
 
     def close_settings(self):
         window.canvas.delete_object('settings')
@@ -83,11 +81,11 @@ class MainMenu:
     def __init__(self):
         self.start_canvas = Canvases.main_menu_canvas()
         window.canvas.create_object(obj=self.start_canvas, relx=.5, y=40, tag='MainMenu')
-        
-        window.canvas.rect_mouse_bind(1, 560, 560, 624, 624, \
-                                      settings.toggle_settings, (0, 0), 'MainMenu')        
+
+        window.canvas.rect_mouse_bind(1, 560, 560, 624, 624,
+                                      settings.toggle_settings, (0, 0), 'MainMenu')
         window.canvas.rect_mouse_bind(1, 192, 500, 300, 564, MainMenu.quit, (), 'MainMenu')
-        
+
         window.graphics_update()
 
     def start_game(self):
