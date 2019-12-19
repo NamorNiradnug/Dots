@@ -75,6 +75,7 @@ class DrawWindow(QMainWindow):
                     if arg[i] == '__y__':
                         arg[i] = event.y()
                 self.mouse_press_events[button][0](*arg)
+                return
 
     def key_bind(self, event_name, function, arg=()):
         self.key_press_events[Data.events_strings[event_name]] = (function, arg)
@@ -116,9 +117,9 @@ class Canvas(QPixmap):
             raise AttributeError
 
         super().__init__(kwargs['width'], kwargs['height'])
-        master = kwargs.get('master', None)
-        if master is not None:
-            self.master = master
+        self.master = kwargs.get('master', None)
+        if self.master is None:
+            raise AttributeError
         self.color = kwargs.get('color', 'white')
         self.fill(QColor(self.color))
         self.objects_tags = ['self']
@@ -188,8 +189,10 @@ class Canvas(QPixmap):
                 if Data.is_intersection(old_button[:4], (x1, y1, x2, y2)):
                     self.master.mouse_press_events.pop(old_button)
             self.master.mouse_press_events[x1, y1, x2, y2, event_button] = function, arg
-       # TODO complete this function!!
-       # else:
+        else:
+            for obj in self.master.objects:
+                if obj[0] is self:
+                    self.master.rect_mouse_bind(event_button, x1 + obj[1], y1 + obj[2], x2 + obj[1], y2 + obj[2], function, arg)
 
     def rect_mouse_unbind(self, x1, y1, x2, y2, tag='self'):
         x1 += self.objects[tag][1]
@@ -229,14 +232,11 @@ class Data:
 
     @staticmethod
     def is_intersection(rect1: tuple, rect2: tuple):
-        if (rect2[0] < rect1[0] < rect2[2] and rect2[1] < rect1[1] < rect2[3]) or \
-           (rect2[0] < rect1[0] < rect2[2] and rect2[1] < rect1[3] < rect2[3]) or \
-           (rect2[0] < rect1[2] < rect2[2] and rect2[1] < rect1[1] < rect2[3]) or \
-           (rect2[0] < rect1[2] < rect2[2] and rect2[1] < rect1[3] < rect2[3]) or \
-           (rect1[0] < rect2[0] < rect1[2] and rect1[1] < rect2[1] < rect1[3]) or \
-           (rect1[0] < rect2[0] < rect1[2] and rect1[1] < rect2[3] < rect1[3]) or \
-           (rect1[0] < rect2[2] < rect1[2] and rect1[1] < rect2[1] < rect1[3]) or \
-           (rect1[0] < rect2[2] < rect1[2] and rect1[1] < rect2[3] < rect1[3]):
+        # if distance between centers of rects less then width1/2 + width2/2
+        if abs((rect1[0] + rect1[2]) - (rect2[0] + rect2[2])) < \
+           rect2[2] - rect2[0] + rect1[2] - rect1[0] and \
+           abs((rect1[0] + rect1[2]) - (rect2[0] + rect2[2])) < \
+           rect2[2] - rect2[0] + rect1[2] - rect1[0]:
             return True
         return False
 
