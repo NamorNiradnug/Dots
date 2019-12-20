@@ -78,9 +78,9 @@ class MainMenu:
         self.start_canvas = main_menu_canvas()
         window.canvas.create_object(obj=self.start_canvas, relx=.5, y=40, tag='MainMenu')
 
-        window.canvas.rect_mouse_bind(1, 560, 560, 624, 624,
-                                      settings.toggle_settings, (0, 0), 'MainMenu')
-        window.canvas.rect_mouse_bind(1, 192, 500, 300, 564, MainMenu.quit, (), 'MainMenu')
+        self.start_canvas.create_button(event_button=1, button_tag='settings_button',
+                                        function=settings.toggle_settings, )
+        #window.canvas.rect_mouse_bind(1, 192, 500, 300, 564, MainMenu.quit, (), 'MainMenu')
 
         window.graphics_update()
 

@@ -4,10 +4,10 @@ from PyQt5.QtCore import QLine, QPoint
 
 
 class Line(QLine):
-    def __init__(self, x1, y1, x2, y2, **kwargs):
+    def __init__(self, *, x1=0, y1=0, x2=0, y2=0, width=1, fill='black'):
         super().__init__(x1, y1, x2, y2)
-        self.fill = kwargs.get('fill', 'black')
-        self.width = kwargs.get('width', 1)
+        self.fill = fill
+        self.width = width
 
     def draw(self, master):
         painter = QPainter(master)
@@ -19,10 +19,10 @@ class Line(QLine):
 
 
 class Circle(QPoint):
-    def __init__(self, x, y, **kwargs):
+    def __init__(self, *, x, y, radius=1, fill='black'):
         super().__init__(x, y)
-        self.radius = kwargs.get('radius', 1)
-        self.fill = kwargs.get('fill', 'black')
+        self.radius = radius
+        self.fill = fill
 
     def draw(self, master):
         painter = QPainter(master)
@@ -112,24 +112,19 @@ class DrawWindow(QMainWindow):
 
 
 class Canvas(QPixmap):
-    def __init__(self, **kwargs):
-        if 'width' not in kwargs.keys() or 'height' not in kwargs.keys():
-            raise AttributeError
-
-        super().__init__(kwargs['width'], kwargs['height'])
-        self.master = kwargs.get('master', None)
-        if self.master is None:
-            raise AttributeError
-        self.color = kwargs.get('color', 'white')
+    def __init__(self, *, width, height, master=None, color='white'):
+        super().__init__(width, height)
+        self.master = master
+        self.color = color
         self.fill(QColor(self.color))
         self.objects_tags = ['self']
         self.objects = {'self': (self, 0, 0),
                         None: (None, 0, 0)}
 
-    def create_object(self, **kwargs):
-        obj, x, y, master_tag, tag, relx, rely = kwargs['obj'], kwargs.get('x', 0),\
-            kwargs.get('y', 0), kwargs.get('master_tag', None),\
-            kwargs['tag'], kwargs.get('relx', None), kwargs.get('rely', None)
+    def create_object(self, *, x=0, y=0, obj, master_tag=None, tag, relx=None, rely=None):
+        #obj, x, y, master_tag, tag, relx, rely = kwargs['obj'], kwargs.get('x', 0),\
+            #kwargs.get('y', 0), kwargs.get('master_tag', None),\
+            #kwargs['tag'], kwargs.get('relx', None), kwargs.get('rely', None)
 
         if tag == 'self':
             raise KeyError
@@ -202,7 +197,7 @@ class Canvas(QPixmap):
         self.rect_mouse_bind(1, x1, y1, x2, y2, print, ())
         self.master.mouse_press_events.pop((x1, y1, x2, y2, 1))
 
-    def create_button(self, event_button, button_tag, function, arg=()):
+    def create_button(self, *, event_button, button_tag, function, arg=()):
         button_obj = self.objects[button_tag]
         self.rect_mouse_bind(event_button, button_obj[1], button_obj[2],
                              button_obj[1] + button_obj[0].size().width(),
