@@ -7,3 +7,7 @@ __pycache__/
 # client/.idea/.gitignore
 client/.idea/.gitignore
 client/.idea/workspace.xml
+
+# wing project files
+Dots.wpr
+Dots.wpu
