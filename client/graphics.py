@@ -10,6 +10,7 @@ class Line(QLine):
         self.width = width
 
     def draw(self, master):
+        self.master = master
         painter = QPainter(master)
         pen = QPen(QColor(self.fill))
         pen.setWidth(self.width)
@@ -25,6 +26,7 @@ class Circle(QPoint):
         self.fill = fill
 
     def draw(self, master):
+        self.master = master
         painter = QPainter(master)
         pen = QPen(QColor(self.fill))
         pen.setWidth(self.radius)
@@ -50,7 +52,7 @@ class DrawWindow(QMainWindow):
         else:
             self.showFullScreen()
 
-    def delete_all(self):
+    def clear(self):
         self.graphics_container.pixmap().fill(QColor('green'))
         self.graphics_container.update()
 
@@ -86,30 +88,6 @@ class DrawWindow(QMainWindow):
         else:
             self.key_press_events.pop(Data.events_strings[event_name])
 
-# I think this functions doesn't need:
-    # def mouse_bind(self, event_button, x, y, function, arg=()):
-    #     self.rect_mouse_bind(event_button, x, y, x, y, function, arg)
-
-    # def rect_mouse_bind(self, event_button, x1, y1, x2, y2, function, arg=()):
-        # self.mouse_press_events[(x1, y1, x2, y2, event_button)] = function, arg
-
-    # def mouse_unbind(self, button, x=None, y=None):
-        # if button == 'all':
-            # if x is None and y is None:
-                # self.mouse_press_events = {}
-            # else:
-                # if (x, y) in self.mouse_press_events.keys():
-                    # self.mouse_press_events.pop((x, y))
-        # else:
-            # if (x, y) in self.mouse_press_events.keys():
-                # if button in self.mouse_press_events[(x, y)]:
-                    # self.key_press_events[(x, y)].pop(button)
-
-    # def rect_mouse_unbind(self, button, x1, y1, x2, y2):
-        # for i in range(int(x1), int(x2) + 1):
-            # for j in range(int(y1), int(y2) + 1):
-                # self.mouse_unbind(button, i, j)
-
 
 class Canvas(QPixmap):
     def __init__(self, *, width, height, master=None, color='white'):
@@ -122,16 +100,12 @@ class Canvas(QPixmap):
                         None: (None, 0, 0)}
 
     def create_object(self, *, x=0, y=0, obj, master_tag=None, tag, relx=None, rely=None):
-        #obj, x, y, master_tag, tag, relx, rely = kwargs['obj'], kwargs.get('x', 0),\
-            #kwargs.get('y', 0), kwargs.get('master_tag', None),\
-            #kwargs['tag'], kwargs.get('relx', None), kwargs.get('rely', None)
-
         if tag == 'self':
             raise KeyError
-
         master_tag_copy = master_tag
         if master_tag is None:
             master_tag = 'self'
+            obj.master = self.objects[master_tag][0]            
         if relx is not None:
             x = self.objects[master_tag][0].size().width() * relx -\
                 obj.size().width() * .5
@@ -210,6 +184,14 @@ class Canvas(QPixmap):
                                             button_obj[1] + button_obj[0].size().width(),
                                             button_obj[2] + button_obj[0].size().height(),
                                             event_button))
+
+    def coords(self, *, obj_tag=None, obj=None):
+        if obj_tag is not None:
+            return self.objects[obj_tag][1:]
+        for obj_data in self.objects:
+            if obj is obj_data[0]:
+                return obj_data[1:]
+
 
 
 class Data:
