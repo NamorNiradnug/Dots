@@ -1,293 +1,160 @@
-from graphics import DrawWindow, Canvas, Line, Circle
-from resources import Resources
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QColor, QImage
+from PyQt5.QtGui import QPainter, QPen, QColor
+from PyQt5.QtCore import QPoint, QSize, Qt
 
-app = QApplication([])
-screen_size = app.desktop().screenGeometry()
-screen_width = screen_size.width()
-screen_height = screen_size.height()
-#window = DrawWindow(screen_width, screen_height)
-window = DrawWindow(900, 900)
-window.show()
+from typing import Tuple, Set, FrozenSet
 
 
-def main_menu_canvas():
-    start_canvas = Canvas(width=640, height=640, color='grey')
-    start_canvas.create_object(x=.5, y=10, obj=QImage(Resources.logo_texture),
-                               tag='logo')
-    start_canvas.create_object(x=560, y=560, obj=QImage(Resources.settings_button),
-                               tag='settings_button')
-    start_canvas.create_object(relx=.5, y=200, obj=QImage(Resources.singleplayer_button),
-                               tag='singleplayer_button')
-    start_canvas.create_object(relx=.5, y=300, obj=QImage(Resources.local_multiplayer_button),
-                               tag='local_multiplayer_button')
-    start_canvas.create_object(relx=.5, y=400, obj=QImage(Resources.multiplayer_button),
-                               tag='multiplayer_button')
-    start_canvas.create_object(relx=.5, y=500, obj=QImage(Resources.quit_button),
-                               tag='quit_button')
-    return start_canvas
- 
-def game_menu_canvas():
-    game_menu_canvas = Canvas(width=320, height=540, color='grey')
-    game_menu_canvas.create_object(x=160, y=500, image=QImage(Resources.quit_button),
-                                   tag='game_quit')
-    return game_menu_canvas
-
-def settings_canvas():
-    settings_canvas = Canvas(width=320, height=540, color='red')
-    # TODO draw on settings canvas
-    return settings_canvas
+class DotsSettings:
+	def __init__(self):
+		self.colors = {
+			0: Qt.red,
+			1: Qt.blue,
+			2: Qt.green,
+			3: Qt.yellow
+		}
 
 
-class Settings:
-    def __init__(self):
-        self.colors = ['#20D020', 'blue']
-        self.fullscreen = False
-        # self.change_fullscreen()
-        self.sound_volume = 50
-        self.draw_line_tracks = True
-        self.dots_canvas_color = 'white'
-        self.settings_canvas = settings_canvas()
+class DotsManager:
+	empty = -1
 
-    def toggle_settings(self, x=0, y=0):
-        print('You toggle settings')
-        if 'settings' not in window.canvas.objects_tags:
-            self.open_settings(x, y)
-        else:
-            self.close_settings()
-        window.graphics_update()
+	def __init__(self, players_number: int):
+		self.players_number = players_number
+		self.settings = DotsSettings()
 
-    def open_settings(self, x, y):
-        window.canvas.create_object(obj=self.settings_canvas, x=x, y=y, tag='settings')
-        window.canvas.rect_mouse_unbind(x, y, x + 320, y + 540)
+	def projecting(self, player: int) -> int:
+		if player > self.players_number - 1:
+			raise AttributeError(f"It is only {self.players_number} players in {self}, player {player} does not exist.")
+		return self.players_number + player
 
-    def close_settings(self):
-        window.canvas.delete_object('settings')
+	def color(self, dot: int) -> QColor:
+		return self.settings.colors[dot % self.players_number]
 
-    def change_fullscreen(self):
-        self.fullscreen = not self.fullscreen
-        window.toggle_full_screen()
+	def real(self, player: int) -> int:
+		if player > self.players_number - 1:
+			raise AttributeError(f"It is only {self.players_number} players in {self}, player {player} does not exist.")
+		return player
 
+	def isReal(self, dot: int) -> bool:
+		return dot // self.players_number == 0
 
-settings = Settings()
+	def isProjecting(self, dot: int) -> bool:
+		return dot // self.players_number == 1
 
+	def player(self, dot: int) -> int:
+		if dot == self.empty:
+			return -1
+		return dot // self.players_number
 
-class MainMenu:
-    def __init__(self):
-        self.start_canvas = main_menu_canvas()
-        window.canvas.create_object(obj=self.start_canvas, relx=.5, y=40, tag='MainMenu')
-
-        self.start_canvas.create_button(event_button=1, button_tag='settings_button',
-                                        function=settings.toggle_settings)
-        #window.canvas.rect_mouse_bind(1, 192, 500, 300, 564, MainMenu.quit, (), 'MainMenu')
-
-        window.graphics_update()
-
-    def start_game(self):
-        window.canvas.delete_object('MainMenu')
-        LocalMultiplayerDots('#20D020', 'blue')
-
-    @staticmethod
-    def quit():
-        app.quit()
+	def isEmpty(self, dot: int) -> bool:
+		return not self.isReal(dot)
 
 
-class GameMenu:
-    def __init__(self):
-        self.game_menu_canvas = game_menu_canvas()
-        self.game_menu_canvas.tag_bind('game_quit', '<Button-1>', lambda event: MainMenu.quit())
-        self.master.tag_bind(self.game_menu_button, '<Button-1>', lambda event: self.toggle_game_menu())
-        root.bind('<Escape>', lambda event: self.toggle_game_menu())
+class Chunk:
+	def __init__(self, x: int, y: int, dots_manager: DotsManager):
+		self.x = x
+		self.y = y
+		self.dots_manager = dots_manager
+		self.map = [[dots_manager.empty for _ in range(16)] for _ in range(16)]
 
-    def toggle_game_menu(self):
-        if self.game_menu_canvas.place_info() == {}:
-            self.open_game_menu()
-        else:
-            self.close_game_menu()
-
-    def open_game_menu(self):
-        self.game_menu_canvas.place(relx=0.5, rely=0.5, anchor='center')
-
-    def close_game_menu(self):
-        self.game_menu_canvas.place_forget()
+	def draw(self, painter: QPainter, tx: int, ty: int) -> None:
+		pen = QPen(Qt.black)
+		pen.setWidth(1)
+		painter.setPen(pen)
+		for x in range(16):
+			for y in range(16):
+				painter.drawLine((self.x + x) * 16 + tx, (self.y + y) * 16 + 8 + ty,  # \ horizontal line
+						     (self.x + x + 1) * 16 + tx, (self.y + y) * 16 + 8 + ty)  # |
+				painter.drawLine((self.x + x) * 16 + 8 + tx, (self.y + y) * 16 + ty,  # \ vertical line
+						     (self.x + x) * 16 + 8 + tx, (self.y + y + 1) * 16 + ty)  # |
+				if self.dots_manager.empty != self.map[x][y]:
+					painter.setBrush(
+						self.dots_manager.settings.colors[self.map[x][y] % self.dots_manager.players_number]
+					)
+					if self.dots_manager.isProjecting(self.map[x][y]):
+						painter.setOpacity(.5)
+					painter.drawEllipse(QPoint((self.x + x) * 16 + 8 + tx,
+											   (self.y + y) * 16 + 8 + ty),
+										4, 4)
+					painter.setOpacity(1)
 
 
 class Dots:
-    def __init__(self, color1: str = settings.colors[0], color2: str = settings.colors[1],
-                 width: int = screen_width, height: int = screen_height):
-        self.height = height
-        self.width = width
-        self.dots_canvas = Canvas(root, bg=settings.dots_canvas_bg, bd=0)
-        self.dots_canvas.config(width=self.width, height=self.height)
-        self.dots_canvas.pack()
-        self.menu = GameMenu(self.dots_canvas)
-        self.points = [[0] * 100 for _ in range(100)]
-        self.colors = ["magenta", color1, color2]
-        self.tracks = set()
+	def __init__(self, players_number: int = 2):
+		self.dots_manager = DotsManager(players_number)
+		self.chunks = [[Chunk(x * 16, y * 16, self.dots_manager) for y in range(16)] for x in range(16)]
+		self.tracks: Set[FrozenSet[Tuple[int, int], Tuple[int, int]]] = set()
+		self.turning_player = 0
+		self.cam_x: int = 128
+		self.cam_y: int = 128
+		self.last_cursor = QPoint(0, 0)
 
-        self.is_greens_turn = 1
-        self.scale = 2
-        self.position = [0, 0]
-        self.origin = [0, 0]
+	def getDot(self, x: int, y: int) -> int:
+		return self.chunks[x // 16][y // 16].map[x % 16][y % 16]
 
-        self.draw(1, 1)
-        root.bind('<MouseWheel>', lambda event: self.set_scale(event.delta))
-        root.bind('<Up>', lambda event: self.translate(0, -1))
-        root.bind('<Down>', lambda event: self.translate(0, 1))
-        root.bind('<Left>', lambda event: self.translate(-1, 0))
-        root.bind('<Right>', lambda event: self.translate(1, 0))
-        self.turn_start()
+	def addDot(self, x: int, y: int, dot: int) -> None:
+		if self.dots_manager.isEmpty(self.getDot(x, y)):
+			self.chunks[x // 16][y // 16].map[x % 16][y % 16] = dot
 
-    @staticmethod
-    def get_adjacent(point: (int, int)):
-        return ((point[0], point[1] - 1), (point[0] + 1, point[1]),
-                (point[0], point[1] + 1), (point[0] - 1, point[1]))
+	def getSurrounding(self, x: int, y: int) -> Set[Tuple[int, int]]:
+		return set([i for i in ((x, y - 1), (x + 1, y - 1),
+							(x + 1, y), (x + 1, y + 1),
+							(x, y + 1), (x - 1, y + 1),
+							(x - 1, y), (x - 1, y - 1))
+				if self.getDot(x, y) == self.getDot(*i)])
 
-    def get_surrounding(self, point: (int, int)):
-        return [i for i in ((point[0], point[1] - 1), (point[0] + 1, point[1] - 1),
-                            (point[0] + 1, point[1]), (point[0] + 1, point[1] + 1),
-                            (point[0], point[1] + 1), (point[0] - 1, point[1] + 1),
-                            (point[0] - 1, point[1]), (point[0] - 1, point[1] - 1))
-                if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]
+	def findNewTracks(self, x: int, y: int) -> None:
+		open_tracks: Set[Tuple[Tuple[int, int], ...]] = {((x, y), )}
+		used = {(x, y)}
+		while open_tracks:
+			open_tracks_copy = open_tracks.copy()
+			open_tracks.clear()
+			for track in open_tracks_copy:
+				for pos in self.getSurrounding(*track[-1]):
+					if pos not in used:
+						open_tracks.add(track + (pos, ))
+						used.add(pos)
+					elif len(track) >= 3 and pos == (x, y):
+						self.addTrack(track + (pos, ))
+					elif pos != (x, y):
+						for other in open_tracks_copy.union(open_tracks):
+							if other[1] != track[1] and pos == other[-1]:
+								self.addTrack(track + other[::-1])
 
-    def optim_clear(self, tracks):
-        if len(tracks) != 0:
-            deleting = [tracks[0]]
-            for __ in range(len(tracks)):
-                for i in tracks:
-                    if set(self.get_surrounding(i[1])).intersection(set([p[1] for p in deleting])) != set():
-                        self.tracks.add(i)
-                        tracks.remove(i)
-                        deleting.append(i)
-        return tracks
+	def addTrack(self, track: Tuple[Tuple[int, int], ...]) -> None:
+		for i in range(len(track) - 1):
+			self.tracks.add(frozenset((track[i], track[i + 1])))
 
-    def find_triangulars(self, point):
-        self_adjacent = [i for i in Dots.get_adjacent(point) if i in self.get_surrounding(point)]
-        for p in range(len(self_adjacent)):
-            if self_adjacent[p] in self.get_surrounding(self_adjacent[(p + 1) % len(self_adjacent)]):
-                self.tracks.add((self_adjacent[p], self_adjacent[(p + 1) % len(self_adjacent)]))
+	def removeDot(self, x: int, y: int) -> None:
+		self.chunks[x // 16][y // 16].map[x % 16][y % 16] = self.dots_manager.empty
 
-    def do_connect(self, point: (int, int)):
-        if settings.draw_line_tracks:
-            self.tracks.update(set([(point, i) for i in Dots.get_adjacent(point)
-                                    if self.points[i[1]][i[0]] == self.points[point[1]][point[0]]]))
-        self.find_triangulars(point)
-        connected = {point}
-        used = []
-        tracks = []
-        open_t = [(point, i) for i in self.get_surrounding(point)]
-        open_t = self.optim_clear(open_t)
-        while len(open_t) != 0:
-            position = open_t[-1][1]
-            used += [open_t[-1], open_t[-1][::-1]]
-            open_t.pop()
-            for i in range(len(tracks)):
-                if tracks[i][-1][1] == used[-2][0]:
-                    tracks.append(tracks[i] + [used[-2]])
-            if used[-1][1] in connected:
-                tracks.append([(used[-1][1], position)])
-            if position != point:
-                open_t += [(position, i) for i in self.get_surrounding(position)
-                           if not ((position, i) in used)]
-            else:
-                for i in tracks:
-                    if i[-1][1] in connected:
-                        self.tracks.update(set(i))
-                        for t in i:
-                             connected.add(t[1])
+	def turn(self, x: int, y: int) -> None:
+		if self.dots_manager.isEmpty(self.getDot(x, y)):
+			self.addDot(x, y, self.dots_manager.real(self.turning_player))
+			self.findNewTracks(x, y)
+			self.turning_player = (self.turning_player + 1) % self.dots_manager.players_number
 
-    def draw_point(self, point_type: int, x: int, y: int):
-        if point_type != 0:
-            self.dots_canvas.create_oval((x * 16 + 5) * self.scale, (y * 16 + 5) * self.scale,
-                                         (x * 16 + 11) * self.scale, (y * 16 + 11) * self.scale,
-                                         fill=self.colors[point_type])
+	def draw(self, size: QSize, cursor: QPoint, painter: QPainter) -> None:
+		if self.dots_manager.isEmpty(self.getDot(self.last_cursor.x(), self.last_cursor.y())):
+			self.removeDot(self.last_cursor.x(), self.last_cursor.y())
+		self.addDot(cursor.x(), cursor.y(), self.dots_manager.projecting(self.turning_player))
+		self.last_cursor = cursor
+		for chunks in self.chunks:
+			for chunk in chunks:
+				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
+						-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
+					chunk.draw(painter, -self.cam_x + size.width() // 2, -self.cam_y + size.height() // 2)
+		for t in self.tracks:
+			t = list(t)
+			painter.drawLine(t[0][0] * 16 + 8 - self.cam_x + size.width() // 2,
+							 t[0][1] * 16 + 8 - self.cam_y + size.height() // 2,
+							 t[1][0] * 16 + 8 - self.cam_x + size.width() // 2,
+							 t[1][1] * 16 + 8 - self.cam_y + size.height() // 2)
+			print(t)
 
-    def find_eaten(self, point):
-        pass
-
-    def draw(self, x: int, y: int):
-        self.position[0] = x
-        self.position[1] = y
-        w = self.width // (self.scale * 16) + 1
-        h = self.height // (self.scale * 16) + 1
-        for i in range(w):
-            self.dots_canvas.create_line(((16 * i) + 8) * self.scale, 0,
-                                         ((i * 16) + 8) * self.scale, self.height,
-                                         fill='black')
-        for i in range(h):
-            self.dots_canvas.create_line(0, ((16 * i) + 8) * self.scale,
-                                         self.width, ((16 * i) + 8) * self.scale,
-                                         fill='black')
-            for j in range(len(self.points[i][x:x + w])):
-                self.draw_point(self.points[y:y + h][i][x:x + w][j], j, i)
-        for i in self.tracks:
-            if x - 1 <= i[0][0] <= x + w + 1 and y - 1 <= i[0][1] <= y + h + 1 and x - 1 <= i[1][0] \
-                    <= x + w + 1 and y - 1 <= i[1][1] <= y + h + 1:
-                self.dots_canvas.create_line(((i[0][0] - self.position[0]) * 16 + 8) * self.scale,
-                                             ((i[0][1] - self.position[1]) * 16 + 8) * self.scale,
-                                             ((i[1][0] - self.position[0]) * 16 + 8) * self.scale,
-                                             ((i[1][1] - self.position[1]) * 16 + 8) * self.scale,
-                                             fill=self.colors[self.points[i[0][1]][i[0][0]]], width=2 * self.scale)
-        self.menu.redraw()
-
- # TODO set_scale
-
-    def set_scale(self, delta: int):
-        scale = int(self.scale * (2 ** (delta // (abs(delta)))))
-        if scale != 1 and scale != 16:
-            self.dots_canvas.delete('all')
-            self.scale = scale
-            if delta > 0:
-                self.position[0] += int(self.width / (64 * self.scale))
-                self.position[1] += int(self.height / (64 * self.scale))
-            self.draw(self.position[0], self.position[1])
-
-    def translate(self, x: int, y: int):
-        # Update self.points for draw function in Dots.
-        while self.position[1] + y <= 0:
-            self.points.insert(0, [0] * len(self.points[0]))
-            self.position[1] += 1
-            self.origin[1] += 1
-            self.tracks = set([((i[0][0], i[0][1] + 1), (i[1][0], i[1][1] + 1)) for i in self.tracks])
-        while self.position[0] + x <= 0:
-            for i in range(len(self.points)):
-                self.points[i].insert(0, 0)
-            self.position[0] += 1
-            self.origin[0] += 1
-            self.tracks = set([((i[0][0] + 1, i[0][1]), (i[1][0] + 1, i[1][1])) for i in self.tracks])
-        while self.position[1] + y + 200 // self.scale >= len(self.points):
-            self.points.append([0] * len(self.points[0]))
-        while self.position[0] + x + 200 // self.scale >= len(self.points[0]):
-            for i in range(len(self.points)):
-                self.points[i].append(0)
-        self.dots_canvas.delete('all')
-        self.draw(self.position[0] + x, self.position[1] + y)
-
-    def turn_start(self):
-        pass
-
-    def turn(self, x: int, y: int):
-        if x <= 64 and y <= 64:
-            self.menu.toggle_game_menu()
-        else:
-            x, y = x // (16 * self.scale) + self.position[0], y // (16 * self.scale) + self.position[1]
-            if self.points[y][x] == 0:
-                self.points[y][x] = self.is_greens_turn
-                self.do_connect((x, y))
-                self.dots_canvas.delete('all')
-                self.draw(self.position[0], self.position[1])
-                if self.is_greens_turn == 1:
-                    self.is_greens_turn = 2
-                else:
-                    self.is_greens_turn = 1
-                self.turn_start()
-
-
-class LocalMultiplayerDots(Dots):
-    def turn_start(self):
-        self.dots_canvas.bind('<Button-1>', lambda event: self.turn(event.x, event.y))
-
-
-main = MainMenu()
-app.exec_()
+	def translate(self, delta: QPoint, size: QSize):
+		self.cam_x += delta.x()
+		self.cam_y += delta.y()
+		self.cam_x = max(self.cam_x, size.width() // 2)
+		self.cam_x = min(self.cam_x, len(self.chunks) * 256 - size.width() // 2)
+		self.cam_y = max(self.cam_y, size.height() // 2)
+		self.cam_y = min(self.cam_y, len(self.chunks[0]) * 256 - size.height() // 2)

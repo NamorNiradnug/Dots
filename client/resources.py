@@ -1,14 +1,14 @@
-from PIL import Image, ImageQt
-from pathlib import Path
+from PyQt5.Qt import QImage
 
 
 class Resources:
-    # This is the structure for storing images.
-    resources = Path('resources')
-    settings_button = ImageQt.ImageQt(Image.open(resources / 'settings.png'))
-    singleplayer_button = ImageQt.ImageQt(Image.open(resources / 'singleplayer.png'))
-    multiplayer_button = ImageQt.ImageQt(Image.open(resources / 'multiplayer.png'))
-    home_button = ImageQt.ImageQt(Image.open(resources / 'home.png'))
-    local_multiplayer_button = ImageQt.ImageQt(Image.open(resources / 'local_multiplayer.png'))
-    quit_button = ImageQt.ImageQt(Image.open(resources / 'quit.png'))
-    logo_texture = ImageQt.ImageQt(Image.open(resources / 'menu_logo.png'))
+    """This is the structure for storing images."""
+
+    images = {}
+
+    def __getattr__(self, item: str) -> QImage:
+        if item in self.images:
+            return self.images[item]
+        image = QImage(f"resources/{item}.png")
+        if image.isNull():
+            raise AttributeError(f"No resource {item}.png in dir 'resources/'.")
