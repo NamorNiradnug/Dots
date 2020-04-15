@@ -204,8 +204,9 @@ class Dots:
 					used.add(pos)
 			if not open_pos:
 				for i, j in used:
-					self.chunks[i // 16][j // 16].map[i % 16][j % 16] = self.dots_manager.eaten(self.getDot(i, j))
-					self.chunks[i // 16][j // 16].eater[i % 16][j % 16] = self.getDot(x, y)
+					self.chunks[i // 16][j // 16].map[i % 16][j % 16] = self.dots_manager.eaten(
+						self.dots_manager.player(self.getDot(i, j)))
+					self.chunks[i // 16][j // 16].eater[i % 16][j % 16] = self.dots_manager.player(self.getDot(x, y))
 	
 	@staticmethod
 	def circle(dx: int, dy: int, radius: int) -> Set[Tuple[int, int]]:
