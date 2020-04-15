@@ -32,12 +32,12 @@ class Interval(Thread):
 class Frame(QMainWindow):
 	def __init__(self):
 		super().__init__()
-		self.dots = Dots()
+		self.dots = Dots(2)
 		self.setWindowTitle("Dots")
 		self.setWindowFlag(Qt.FramelessWindowHint)
 		self.draw_thread = Interval(1 / 60, self.update)
 		self.draw_thread.start()
-
+		
 		self.last_key = Qt.NoButton
 		self.last_button = Qt.NoButton
 

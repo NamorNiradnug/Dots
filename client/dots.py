@@ -1,6 +1,6 @@
 from typing import Tuple, Set, FrozenSet
 
-from PyQt5.QtGui import QPainter, QPen, QColor
+from PyQt5.QtGui import QPainter, QPen, QColor, QBrush
 from PyQt5.QtCore import QPoint, QSize, Qt
 
 
@@ -19,6 +19,8 @@ class DotsManager:
 	empty_eaten = -2
 	
 	def __init__(self, players_number: int):
+		if not 0 < players_number < 5:
+			raise AttributeError(f"Only from 1 to 4 player can play dots, not {players_number}.")
 		self.players_number = players_number
 		self.settings = DotsSettings()
 	
@@ -27,38 +29,21 @@ class DotsManager:
 			raise AttributeError(f"It is only {self.players_number} players in {self}, player {player} does not exist.")
 		return player
 	
-	def projecting(self, player: int) -> int:
-		return self._getPlayer(player) + self.players_number
-	
 	def real(self, player: int) -> int:
 		return self._getPlayer(player)
 	
 	def eaten(self, player: int) -> int:
-		if player == -1:
+		if player == self.empty:
 			return self.empty_eaten
-		return self._getPlayer(player) + self.players_number * 2
+		return self._getPlayer(player) + self.players_number
 	
 	def color(self, dot: int) -> QColor:
-		if dot in {-1}:
+		if dot in {self.empty, self.empty_eaten}:
 			return Qt.transparent
-		if self.isReal(dot) or self.isProjecting(dot):
-			return self.settings.colors[self.player(dot)]
-		return Qt.white
-	
-	def isReal(self, dot: int) -> bool:
-		return dot // self.players_number == 0
-	
-	def isProjecting(self, dot: int) -> bool:
-		return dot // self.players_number == 1
-	
-	def isEaten(self, dot: int) -> bool:
-		return (dot // self.players_number == 2 and dot >= 0) or dot == self.empty_eaten
-	
-	def isEmpty(self, dot: int) -> bool:
-		return not self.isReal(dot)
+		return self.settings.colors[self.player(dot)]
 	
 	def player(self, dot: int) -> int:
-		if dot == self.empty:
+		if dot in {self.empty, self.empty_eaten}:
 			return -1
 		return dot % self.players_number
 
@@ -70,37 +55,54 @@ class Chunk:
 		self.dots_manager = dots_manager
 		self.map = [[dots_manager.empty for _ in range(16)] for _ in range(16)]
 		self.tracks: Set[FrozenSet[Tuple[int, int], Tuple[int, int]]] = set()
+		self.eater = [[-1 for _ in range(16)] for _ in range(16)]
 	
 	def isEmpty(self):
 		return self.map == [[self.dots_manager.empty for _ in range(16)] for _ in range(16)]
 	
-	def draw(self, painter: QPainter, tx: int, ty: int) -> None:
+	def drawLines(self, painter: QPainter, tx: int, ty: int) -> None:
 		line_pen = QPen(Qt.black)
 		line_pen.setWidth(1)
+		painter.setPen(line_pen)
+		for i in range(16):
+			painter.drawLine(self.x * 16 + tx, (self.y + i) * 16 + 8 + ty,  # \ horizontal line
+			                 self.x * 16 + 256 + tx, (self.y + i) * 16 + 8 + ty)  # /
+			painter.drawLine((self.x + i) * 16 + 8 + tx, self.y * 16 + ty,  # \ vertical line
+			                 (self.x + i) * 16 + 8 + tx, self.y * 16 + 256 + ty)  # /
+	
+	def drawDots(self, painter: QPainter, tx: int, ty: int, dots: 'Dots') -> None:
+		painter.setPen(Qt.transparent)
 		for x in range(16):
 			for y in range(16):
-				painter.setPen(line_pen)
-				painter.drawLine((self.x + x) * 16 + tx, (self.y + y) * 16 + 8 + ty,  # \ horizontal line
-				                 (self.x + x + 1) * 16 + tx, (self.y + y) * 16 + 8 + ty)  # |
-				painter.drawLine((self.x + x) * 16 + 8 + tx, (self.y + y) * 16 + ty,  # \ vertical line
-				                 (self.x + x) * 16 + 8 + tx, (self.y + y + 1) * 16 + ty)  # |
-				painter.setPen(Qt.transparent)
 				painter.setBrush(
 					self.dots_manager.color(self.map[x][y])
 				)
-				if self.dots_manager.isProjecting(self.map[x][y]):
-					painter.setOpacity(.5)
-				painter.drawEllipse(QPoint((self.x + x) * 16 + 8 + tx,
-				                           (self.y + y) * 16 + 8 + ty),
-				                    4, 4)
-				painter.setOpacity(1)
-
+				painter.drawEllipse((self.x + x) * 16 + 5 + tx, (self.y + y) * 16 + 5 + ty, 7, 7)
+				fill_brush = QBrush(self.dots_manager.color(self.eater[x][y]))
+				fill_brush.setStyle(Qt.BDiagPattern)
+				painter.setBrush(fill_brush)
+				before = {(0, -1): (-1, -1),
+				          (1, 0): (1, -1),
+				          (0, 1): (1, 1),
+				          (-1, 0): (-1, 1)
+				          }
+				poly = [self.dotCoord(xx, yy) + QPoint(tx, ty)
+				        for xx, yy in [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]]
+				for val in before:
+					if dots.getDot(self.x + x + before[val][0], self.y + y + before[val][1]) == self.eater[x][y]:
+						poly.insert(poly.index(self.dotCoord(val[0] + x, val[1] + y) + QPoint(tx, ty)),
+						            self.dotCoord(before[val][0] + x, before[val][1] + y) + QPoint(tx, ty))
+				painter.drawPolygon(*poly)
+		
 		for track in self.tracks:
 			track = tuple(track)
-			min_dot = max(track)
-			painter.setPen(self.dots_manager.color(self.map[min_dot[0] % 16][min_dot[1] % 16]))
+			max_dot = max(track)
+			painter.setPen(self.dots_manager.color(self.map[max_dot[0] % 16][max_dot[1] % 16]))
 			painter.drawLine(track[0][0] * 16 + 8 + tx, track[0][1] * 16 + 8 + ty,
 			                 track[1][0] * 16 + 8 + tx, track[1][1] * 16 + 8 + ty)
+	
+	def dotCoord(self, x: int, y: int) -> QPoint:
+		return QPoint((self.x + x) * 16 + 8, (self.y + y) * 16 + 8)
 
 
 class Dots:
@@ -111,12 +113,6 @@ class Dots:
 		self.turning_player = 0
 		self.cam_x: int = 0
 		self.cam_y: int = 0
-		self.last_cursor = QPoint(0, 0)
-	
-	def addDot(self, x: int, y: int, dot: int) -> None:
-		if self.dots_manager.isEmpty(self.getDot(x, y)) and 0 < x < 255 and 0 < y < 255 and \
-				not self.dots_manager.isEaten(self.getDot(x, y)):
-			self.chunks[x // 16][y // 16].map[x % 16][y % 16] = dot
 	
 	def addTrack(self, track: Tuple[Tuple[int, int], ...]) -> None:
 		for i in range(len(track) - 1):
@@ -124,16 +120,23 @@ class Dots:
 			self.chunks[max_dot[0] // 16][max_dot[1] // 16].tracks.add(frozenset((track[i], track[i + 1])))
 	
 	def draw(self, size: QSize, cursor: QPoint, painter: QPainter) -> None:
-		if self.dots_manager.isEmpty(self.getDot(self.last_cursor.x(), self.last_cursor.y())) and \
-				not self.dots_manager.isEaten(self.getDot(self.last_cursor.x(), self.last_cursor.y())):
-			self.removeDot(self.last_cursor.x(), self.last_cursor.y())
-		self.addDot(cursor.x(), cursor.y(), self.dots_manager.projecting(self.turning_player))
-		self.last_cursor = cursor
+		# TODO: optimization of drawing!
 		for chunks in self.chunks:
 			for chunk in chunks:
 				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
 						-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
-					chunk.draw(painter, -self.cam_x + size.width() // 2, -self.cam_y + size.height() // 2)
+					chunk.drawLines(painter, -self.cam_x + size.width() // 2, -self.cam_y + size.height() // 2)
+		for chunks in self.chunks:
+			for chunk in chunks:
+				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
+						-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
+					chunk.drawDots(painter, -self.cam_x + size.width() // 2, -self.cam_y + size.height() // 2, self)
+		if self.getDot(cursor.x(), cursor.y()) == self.dots_manager.empty and \
+				0 < cursor.x() < 255 and 0 < cursor.y() < 255:
+			painter.setOpacity(.5)
+			painter.setBrush(self.dots_manager.color(self.turning_player))
+			painter.drawEllipse(cursor.x() * 16 + 5 - self.cam_x + size.width() // 2,
+			                    cursor.y() * 16 + 5 - self.cam_y + size.height() // 2, 7, 7)
 	
 	@staticmethod
 	def getAdjacent(x: int, y: int) -> Set[Tuple[int, int]]:
@@ -142,12 +145,12 @@ class Dots:
 	def getDot(self, x: int, y: int) -> int:
 		return self.chunks[x // 16][y // 16].map[x % 16][y % 16]
 	
-	def getSurrounding(self, x: int, y: int) -> Set[Tuple[int, int]]:
+	def getSurrounding(self, x: int, y: int, every: bool = False) -> Set[Tuple[int, int]]:
 		return set([i for i in ((x, y - 1), (x + 1, y - 1),
 		                        (x + 1, y), (x + 1, y + 1),
 		                        (x, y + 1), (x - 1, y + 1),
 		                        (x - 1, y), (x - 1, y - 1))
-		            if self.getDot(x, y) == self.getDot(*i)])
+		            if self.getDot(x, y) == self.getDot(*i) or every])
 	
 	def _findEmpty(self, x: int, y: int) -> Tuple[int, int]:
 		radius = 1
@@ -202,9 +205,7 @@ class Dots:
 			if not open_pos:
 				for i, j in used:
 					self.chunks[i // 16][j // 16].map[i % 16][j % 16] = self.dots_manager.eaten(self.getDot(i, j))
-	
-	def removeDot(self, x: int, y: int) -> None:
-		self.chunks[x // 16][y // 16].map[x % 16][y % 16] = self.dots_manager.empty
+					self.chunks[i // 16][j // 16].eater[i % 16][j % 16] = self.getDot(x, y)
 	
 	@staticmethod
 	def circle(dx: int, dy: int, radius: int) -> Set[Tuple[int, int]]:
@@ -223,8 +224,8 @@ class Dots:
 		self.cam_y = min(self.cam_y, len(self.chunks[0]) * 256 - size.height() // 2)
 	
 	def turn(self, x: int, y: int) -> None:
-		if self.dots_manager.isEmpty(self.getDot(x, y)):
-			self.addDot(x, y, self.dots_manager.real(self.turning_player))
+		if self.getDot(x, y) == self.dots_manager.empty and 0 < x < 255 and 0 < y < 255:
+			self.chunks[x // 16][y // 16].map[x % 16][y % 16] = self.dots_manager.real(self.turning_player)
 			self.findNewTracks(x, y)
 			self.findNewEaten(x, y)
 			self.turning_player = (self.turning_player + 1) % self.dots_manager.players_number
