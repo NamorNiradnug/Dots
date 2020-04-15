@@ -1,4 +1,3 @@
-from time import time
 from typing import Tuple, Set, FrozenSet
 
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush
@@ -75,13 +74,20 @@ class Chunk:
 			                 (self.x + i) * 16 + 8 + tx, self.y * 16 + 256 + ty)  # /
 	
 	def drawDots(self, painter: QPainter, tx: int, ty: int, dots: 'Dots') -> None:
+		for track in self.tracks:
+			track = tuple(track)
+			max_dot = max(track)
+			painter.setPen(self.dots_manager.color(self.map[max_dot[0] % 16][max_dot[1] % 16]))
+			painter.drawLine(track[0][0] * 16 + 8 + tx, track[0][1] * 16 + 8 + ty,
+	                 track[1][0] * 16 + 8 + tx, track[1][1] * 16 + 8 + ty)
+
 		painter.setPen(Qt.transparent)
 		for x in range(16):
 			for y in range(16):
 				painter.setBrush(
 					self.dots_manager.color(self.map[x][y])
 				)
-				painter.drawEllipse((self.x + x) * 16 + 5 + tx, (self.y + y) * 16 + 5 + ty, 7, 7)
+				painter.drawEllipse((self.x + x) * 16 + 5 + tx, (self.y + y) * 16 + 5 + ty, 6, 6)
 				if not self.dots_manager.isEaten(self.map[x][y]):
 					continue
 				fill_brush = QBrush(self.dots_manager.color(self.eater[x][y]))
@@ -99,13 +105,6 @@ class Chunk:
 						poly.insert(poly.index(self.dotCoord(val[0] + x, val[1] + y) + QPoint(tx, ty)),
 						            self.dotCoord(before[val][0] + x, before[val][1] + y) + QPoint(tx, ty))
 				painter.drawPolygon(*poly)
-		
-		for track in self.tracks:
-			track = tuple(track)
-			max_dot = max(track)
-			painter.setPen(self.dots_manager.color(self.map[max_dot[0] % 16][max_dot[1] % 16]))
-			painter.drawLine(track[0][0] * 16 + 8 + tx, track[0][1] * 16 + 8 + ty,
-			                 track[1][0] * 16 + 8 + tx, track[1][1] * 16 + 8 + ty)
 	
 	def dotCoord(self, x: int, y: int) -> QPoint:
 		return QPoint((self.x + x) * 16 + 8, (self.y + y) * 16 + 8)
@@ -118,8 +117,9 @@ class Dots:
 		self.chunks = [[Chunk(x * 16, y * 16, self.dots_manager) for y in range(16)] for x in range(16)]
 		self.tracks: Set[FrozenSet[Tuple[int, int], Tuple[int, int]]] = set()
 		self.turning_player = 0
-		self.cam_x: int = 0
-		self.cam_y: int = 0
+		self.cam_x: int = 256
+		self.cam_y: int = 256
+		self.scale: float = 2
 	
 	def addTrack(self, track: Tuple[Tuple[int, int], ...]) -> None:
 		for i in range(len(track) - 1):
@@ -127,11 +127,13 @@ class Dots:
 			self.chunks[max_dot[0] // 16][max_dot[1] // 16].tracks.add(frozenset((track[i], track[i + 1])))
 	
 	def draw(self, size: QSize, cursor: QPoint, painter: QPainter) -> None:
+		painter.scale(self.scale, self.scale)
+		size /= self.scale
 		visible: Set[Chunk] = set()
 		for chunks in self.chunks:
 			for chunk in chunks:
 				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
-					-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
+					-256 * self.scale < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
 					visible.add(chunk)
 		tx = -self.cam_x + size.width() // 2
 		ty = -self.cam_y + size.height() // 2
@@ -144,7 +146,7 @@ class Dots:
 			painter.setOpacity(.5)
 			painter.setBrush(self.dots_manager.color(self.turning_player))
 			painter.drawEllipse(cursor.x() * 16 + 5 - self.cam_x + size.width() // 2,
-			                    cursor.y() * 16 + 5 - self.cam_y + size.height() // 2, 7, 7)
+			                    cursor.y() * 16 + 5 - self.cam_y + size.height() // 2, 6, 6)
 
 	@staticmethod
 	def getAdjacent(x: int, y: int) -> Set[Tuple[int, int]]:
@@ -225,6 +227,7 @@ class Dots:
 		return answer
 	
 	def translate(self, delta: QPoint, size: QSize) -> None:
+		size /= self.scale
 		self.cam_x += delta.x()
 		self.cam_y += delta.y()
 		self.cam_x = max(self.cam_x, size.width() // 2)
@@ -232,6 +235,12 @@ class Dots:
 		self.cam_y = max(self.cam_y, size.height() // 2)
 		self.cam_y = min(self.cam_y, len(self.chunks[0]) * 256 - size.height() // 2)
 	
+	def changeScale(self, delta: float, size: QSize) -> None:
+		self.scale += delta
+		self.scale = max(self.scale, 2)
+		self.scale = min(self.scale, 6)
+		self.translate(QPoint(), size)
+
 	def turn(self, x: int, y: int) -> None:
 		if self.getDot(x, y) == self.dots_manager.empty and 0 < x < 255 and 0 < y < 255:
 			self.chunks[x // 16][y // 16].map[x % 16][y % 16] = self.dots_manager.real(self.turning_player)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtGui import QPainter, QMouseEvent
+from PyQt5.QtGui import QPainter, QMouseEvent, QWheelEvent
 from PyQt5.Qt import QPaintEvent, QCloseEvent, QKeyEvent, Qt, QPoint
 
 try:
@@ -62,9 +62,14 @@ class Frame(QMainWindow):
 		if translate:
 			self.dots.translate(QPoint(*translate), self.size())
 
+	def wheelEvent(self, event: QWheelEvent) -> None:
+		self.dots.changeScale(event.angleDelta().y() / 240, self.size())
+
 	def coordsOnMap(self, point: QPoint) -> QPoint:
-		real_point = point + QPoint(self.dots.cam_x, self.dots.cam_y) - QPoint(self.width() // 2, self.height() // 2)
-		return QPoint(round(real_point.x() / 16 - .5), round(real_point.y() / 16 - .5))
+		real_point = point / self.dots.scale + QPoint(self.dots.cam_x, self.dots.cam_y) - \
+		             QPoint(self.width() // 2, self.height() // 2) / self.dots.scale
+		return QPoint(round(real_point.x() / 16 - .5),
+		              round(real_point.y() / 16 - .5))
 
 	def mouseReleaseEvent(self, event: QMouseEvent) -> None:
 		if event.button() == Qt.LeftButton:
