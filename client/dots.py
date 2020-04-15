@@ -1,3 +1,4 @@
+from time import time
 from typing import Tuple, Set, FrozenSet
 
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush
@@ -32,6 +33,9 @@ class DotsManager:
 	def real(self, player: int) -> int:
 		return self._getPlayer(player)
 	
+	def isEaten(self, dot: int) -> bool:
+		return self.eaten(self.player(dot)) == dot
+
 	def eaten(self, player: int) -> int:
 		if player == self.empty:
 			return self.empty_eaten
@@ -78,6 +82,8 @@ class Chunk:
 					self.dots_manager.color(self.map[x][y])
 				)
 				painter.drawEllipse((self.x + x) * 16 + 5 + tx, (self.y + y) * 16 + 5 + ty, 7, 7)
+				if not self.dots_manager.isEaten(self.map[x][y]):
+					continue
 				fill_brush = QBrush(self.dots_manager.color(self.eater[x][y]))
 				fill_brush.setStyle(Qt.BDiagPattern)
 				painter.setBrush(fill_brush)
@@ -106,6 +112,7 @@ class Chunk:
 
 
 class Dots:
+	# TODO: scaling
 	def __init__(self, players_number: int = 2):
 		self.dots_manager = DotsManager(players_number)
 		self.chunks = [[Chunk(x * 16, y * 16, self.dots_manager) for y in range(16)] for x in range(16)]
@@ -120,24 +127,25 @@ class Dots:
 			self.chunks[max_dot[0] // 16][max_dot[1] // 16].tracks.add(frozenset((track[i], track[i + 1])))
 	
 	def draw(self, size: QSize, cursor: QPoint, painter: QPainter) -> None:
-		# TODO: optimization of drawing!
+		visible: Set[Chunk] = set()
 		for chunks in self.chunks:
 			for chunk in chunks:
 				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
-						-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
-					chunk.drawLines(painter, -self.cam_x + size.width() // 2, -self.cam_y + size.height() // 2)
-		for chunks in self.chunks:
-			for chunk in chunks:
-				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
-						-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
-					chunk.drawDots(painter, -self.cam_x + size.width() // 2, -self.cam_y + size.height() // 2, self)
+					-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
+					visible.add(chunk)
+		tx = -self.cam_x + size.width() // 2
+		ty = -self.cam_y + size.height() // 2
+		for chunk in visible:
+			chunk.drawLines(painter, tx, ty)
+		for chunk in visible:
+			chunk.drawDots(painter, tx, ty, self)
 		if self.getDot(cursor.x(), cursor.y()) == self.dots_manager.empty and \
 				0 < cursor.x() < 255 and 0 < cursor.y() < 255:
 			painter.setOpacity(.5)
 			painter.setBrush(self.dots_manager.color(self.turning_player))
 			painter.drawEllipse(cursor.x() * 16 + 5 - self.cam_x + size.width() // 2,
 			                    cursor.y() * 16 + 5 - self.cam_y + size.height() // 2, 7, 7)
-	
+
 	@staticmethod
 	def getAdjacent(x: int, y: int) -> Set[Tuple[int, int]]:
 		return Dots.circle(x, y, 1)
