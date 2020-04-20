@@ -1,4 +1,4 @@
-from typing import Tuple, Set, FrozenSet
+from typing import Tuple, Set, FrozenSet, Union
 
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush
 from PyQt5.QtCore import QPoint, QSize, Qt
@@ -111,14 +111,13 @@ class Chunk:
 
 
 class Dots:
-	# TODO: scaling
 	def __init__(self, players_number: int = 2):
 		self.dots_manager = DotsManager(players_number)
 		self.chunks = [[Chunk(x * 16, y * 16, self.dots_manager) for y in range(16)] for x in range(16)]
 		self.tracks: Set[FrozenSet[Tuple[int, int], Tuple[int, int]]] = set()
 		self.turning_player = 0
-		self.cam_x: int = 256
-		self.cam_y: int = 256
+		self.cam_x: int = 2048
+		self.cam_y: int = 2048
 		self.scale: float = 2
 	
 	def addTrack(self, track: Tuple[Tuple[int, int], ...]) -> None:
@@ -126,7 +125,22 @@ class Dots:
 			max_dot = max(track[i], track[i + 1])
 			self.chunks[max_dot[0] // 16][max_dot[1] // 16].tracks.add(frozenset((track[i], track[i + 1])))
 	
-	def draw(self, size: QSize, cursor: QPoint, painter: QPainter) -> None:
+	def changeScale(self, delta: float, size: QSize) -> None:
+		self.scale += delta
+		self.scale = max(self.scale, 2)
+		self.scale = min(self.scale, 6)
+		self.translate(QPoint(), size)
+	
+	@staticmethod
+	def circle(dx: int, dy: int, radius: int) -> Set[Tuple[int, int]]:
+		answer = set()
+		for x in range(-radius, radius + 1):
+			for y in (radius - abs(x), -radius + abs(x)):
+				answer.add((x + dx, y + dy))
+		return answer
+
+	def draw(self, size: QSize, painter: QPainter, cursor: Union[QPoint, None] = None) -> None:
+		painter.save()
 		painter.scale(self.scale, self.scale)
 		size /= self.scale
 		visible: Set[Chunk] = set()
@@ -141,20 +155,23 @@ class Dots:
 			chunk.drawLines(painter, tx, ty)
 		for chunk in visible:
 			chunk.drawDots(painter, tx, ty, self)
-		if self.getDot(cursor.x(), cursor.y()) == self.dots_manager.empty and \
+		if cursor is not None and self.getDot(cursor.x(), cursor.y()) == self.dots_manager.empty and \
 				0 < cursor.x() < 255 and 0 < cursor.y() < 255:
 			painter.setOpacity(.5)
 			painter.setBrush(self.dots_manager.color(self.turning_player))
 			painter.drawEllipse(cursor.x() * 16 + 5 - self.cam_x + size.width() // 2,
 			                    cursor.y() * 16 + 5 - self.cam_y + size.height() // 2, 6, 6)
+		painter.restore()
 
 	@staticmethod
 	def getAdjacent(x: int, y: int) -> Set[Tuple[int, int]]:
 		return Dots.circle(x, y, 1)
 	
 	def getDot(self, x: int, y: int) -> int:
-		return self.chunks[x // 16][y // 16].map[x % 16][y % 16]
-	
+		if 0 <= x < 256 and 0 <= y < 256:
+			return self.chunks[x // 16][y // 16].map[x % 16][y % 16]
+		return self.dots_manager.empty
+
 	def getSurrounding(self, x: int, y: int, every: bool = False) -> Set[Tuple[int, int]]:
 		return set([i for i in ((x, y - 1), (x + 1, y - 1),
 		                        (x + 1, y), (x + 1, y + 1),
@@ -163,11 +180,11 @@ class Dots:
 		            if self.getDot(x, y) == self.getDot(*i) or every])
 	
 	def _findEmpty(self, x: int, y: int) -> Tuple[int, int]:
-		radius = 1
+		radius = 0
 		x //= 16
 		y //= 16
-		while (radius < x - 1 and radius < y - 1 and radius < 16 - x and radius < 16 and
-		       all(not self.chunks[i][j].isEmpty for i, j in self.circle(x, y, radius))):
+		while (radius < x and radius < y and radius < 15 - x and radius < 15 - y and
+		       all(not self.chunks[i][j].isEmpty() for i, j in self.circle(x, y, radius))):
 			radius += 1
 		for i, j in self.circle(x, y, radius):
 			if self.chunks[i][j].isEmpty():
@@ -218,28 +235,14 @@ class Dots:
 						self.dots_manager.player(self.getDot(i, j)))
 					self.chunks[i // 16][j // 16].eater[i % 16][j % 16] = self.dots_manager.player(self.getDot(x, y))
 	
-	@staticmethod
-	def circle(dx: int, dy: int, radius: int) -> Set[Tuple[int, int]]:
-		answer = set()
-		for x in range(-radius, radius + 1):
-			for y in (radius - abs(x), -radius + abs(x)):
-				answer.add((x + dx, y + dy))
-		return answer
-	
 	def translate(self, delta: QPoint, size: QSize) -> None:
 		size /= self.scale
 		self.cam_x += delta.x()
 		self.cam_y += delta.y()
-		self.cam_x = max(self.cam_x, size.width() // 2)
-		self.cam_x = min(self.cam_x, len(self.chunks) * 256 - size.width() // 2)
-		self.cam_y = max(self.cam_y, size.height() // 2)
-		self.cam_y = min(self.cam_y, len(self.chunks[0]) * 256 - size.height() // 2)
-	
-	def changeScale(self, delta: float, size: QSize) -> None:
-		self.scale += delta
-		self.scale = max(self.scale, 2)
-		self.scale = min(self.scale, 6)
-		self.translate(QPoint(), size)
+		self.cam_x = max(self.cam_x, size.width() // 2 + self.scale * 16)
+		self.cam_x = min(self.cam_x, len(self.chunks) * 256 - size.width() // 2 - self.scale * 16)
+		self.cam_y = max(self.cam_y, size.height() // 2 + self.scale * 16)
+		self.cam_y = min(self.cam_y, len(self.chunks[0]) * 256 - size.height() // 2 - self.scale * 16)
 
 	def turn(self, x: int, y: int) -> None:
 		if self.getDot(x, y) == self.dots_manager.empty and 0 < x < 255 and 0 < y < 255:
