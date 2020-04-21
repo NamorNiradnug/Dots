@@ -94,7 +94,10 @@ class Modes:
 	MultiplayerGame = 2
 	GamePause = 3
 	MainMenu = 4
+	Settings = 5
+	Rules = 7
 	Games = {LocalGame, SingleGame, MultiplayerGame}
+	Delevoping = {SingleGame, MultiplayerGame, Settings, Rules}
 
 
 class Frame(QMainWindow):
@@ -104,24 +107,27 @@ class Frame(QMainWindow):
 		self.setWindowTitle("Dots")
 		self.draw_thread = Interval(1 / 60, self.update)
 		self.draw_thread.start()
-		
+
 		self.buttons: Set[Button] = set()
 		self.mode = None
+		self.game_mode = None
+		self.last_mode = Modes.MainMenu
 		self.setMode(Modes.MainMenu)
 		self.last_key = Qt.NoButton
 		self.last_button = Qt.NoButton
 
 	def setMode(self, mode: int, *args: List[Any]) -> None:
-		if mode in Modes.Games:
-			self.mode = mode
+		if mode == Modes.LocalGame and self.dots is None:
 			self.dots = Dots(*args)
+			self.game_mode = mode
 		if mode == Modes.GamePause:
-			if self.mode in Modes.Games:
-				self.mode = mode
-			else:
+			if self.game_mode is None:
 				raise AttributeError("Cannot set pause game mode.")
 		if mode == Modes.MainMenu:
-			self.mode = mode
+			self.dots = None
+			self.game_mode = None
+		self.last_mode = self.mode
+		self.mode = mode
 		self.updateButtons()
 
 	def updateButtons(self):
@@ -137,13 +143,34 @@ class Frame(QMainWindow):
 			                       func=(lambda: self.setMode(Modes.SingleGame),
 			                             lambda: self.setMode(Modes.LocalGame),
 			                             lambda: self.setMode(Modes.MultiplayerGame),
-			                             lambda: None,
+			                             lambda: self.setMode(Modes.Settings),
 			                             self.close)[i])
 			                for i in range(5)}
-		if self.mode in Modes.Games:
-			self.buttons = {Button(QRect(QPoint(self.geometry().width(), self.geometry().height())
-			                             - QPoint(70, 70), QSize(64, 64)),
-			                       image=Resources.gear)}
+		if self.mode == Modes.LocalGame:
+			self.buttons = {
+				Button(QRect(QPoint(self.geometry().width(), self.geometry().height()) - QPoint(70, 70), QSize(64, 64)),
+			                image=Resources.gear,
+				            func=lambda: self.setMode(Modes.Settings)
+				       )
+			}
+		elif self.mode in Modes.Delevoping:
+			self.buttons = {
+				Button(QRect(self.geometry().width() // 2 - 64, self.geometry().height() // 2 + 50, 128, 48),
+			                      text="EXIT",
+			                      func=lambda: self.setMode(self.last_mode))
+			                }
+		if self.mode == Modes.GamePause:
+			self.buttons = {
+				Button(QRect(self.geometry().width() // 2 - 128,
+				             self.geometry().height() // 2 - 200 + 112 * i,
+				             256, 64),
+				       text=("BACK TO GAME", "GAME RULES", "SETTINGS", "EXIT TO MAIN MENU")[i],
+				       func=(lambda: self.setMode(self.game_mode),
+				            lambda: self.setMode(Modes.Rules),
+				            lambda: self.setMode(Modes.Settings),
+				            lambda: self.setMode(Modes.MainMenu))[i])
+				for i in range(4)
+			}
 
 	def closeEvent(self, _: QCloseEvent) -> None:
 		self.draw_thread.cancel()
@@ -168,7 +195,17 @@ class Frame(QMainWindow):
 			if not all(on_map not in button.rect and self.cursorPos() not in button.rect for button in self.buttons) or\
 					on_map not in QRect(QPoint(), self.geometry().size()):
 				project_dot = None
-			self.dots.draw(self.size(), painter, project_dot)
+			self.dots.draw(self.geometry().size(), painter, project_dot)
+		if self.mode == Modes.GamePause:
+			self.dots.draw(self.geometry().size(), painter)
+			painter.setOpacity(.5)
+			painter.setBrush(Qt.black)
+			painter.drawRect(QRect(QPoint(), self.geometry().size()))
+			painter.setOpacity(1)
+		elif self.mode in Modes.Delevoping:
+			painter.setPen(Qt.green)
+			painter.setFont(QFont('Times', 30))
+			painter.drawText(self.geometry(), Qt.AlignCenter, "IN DEVELOPING")
 		for button in self.buttons:
 			button.draw(painter, self.cursorPos())
 		painter.end()
@@ -185,6 +222,15 @@ class Frame(QMainWindow):
 			translate = 10, 0
 		if translate:
 			self.dots.translate(QPoint(*translate) * self.dots.scale, self.size())
+
+	def keyPressEvent(self, event: QKeyEvent) -> None:
+		if event.key() == Qt.Key_Escape:
+			if self.mode == Modes.LocalGame:
+				self.setMode(Modes.GamePause)
+			elif self.mode in Modes.Delevoping:
+				self.setMode(self.last_mode)
+			elif self.mode == Modes.GamePause:
+				self.setMode(self.game_mode)
 
 	def wheelEvent(self, event: QWheelEvent) -> None:
 		if self.mode in Modes.Games:
