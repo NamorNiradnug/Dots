@@ -1,4 +1,4 @@
-from typing import Tuple, Set, FrozenSet, Union
+from typing import Tuple, Set, FrozenSet, Optional
 
 from PyQt5.QtGui import QPainter, QPen, QColor, QBrush
 from PyQt5.QtCore import QPoint, QSize, Qt
@@ -11,6 +11,12 @@ class DotsSettings:
 			1: Qt.blue,
 			2: Qt.green,
 			3: Qt.yellow
+		}
+		self.nicks = {
+			0: 'red',
+			1: 'blue',
+			2: 'green',
+			3: 'yellow'
 		}
 
 
@@ -119,12 +125,13 @@ class Dots:
 		self.cam_x: int = 2048
 		self.cam_y: int = 2048
 		self.scale: float = 2
-	
+		self.counters = [0] * players_number
+
 	def addTrack(self, track: Tuple[Tuple[int, int], ...]) -> None:
 		for i in range(len(track) - 1):
 			max_dot = max(track[i], track[i + 1])
 			self.chunks[max_dot[0] // 16][max_dot[1] // 16].tracks.add(frozenset((track[i], track[i + 1])))
-	
+
 	def changeScale(self, delta: float, size: QSize) -> None:
 		self.scale += delta
 		self.scale = max(self.scale, 2)
@@ -139,7 +146,7 @@ class Dots:
 				answer.add((x + dx, y + dy))
 		return answer
 
-	def draw(self, size: QSize, painter: QPainter, cursor: Union[QPoint, None] = None) -> None:
+	def draw(self, size: QSize, painter: QPainter, cursor: Optional[QPoint] = None) -> None:
 		painter.save()
 		painter.scale(self.scale, self.scale)
 		size /= self.scale
@@ -147,8 +154,9 @@ class Dots:
 		for chunks in self.chunks:
 			for chunk in chunks:
 				if (-256 < chunk.x * 16 + size.width() // 2 - self.cam_x <= size.width() and
-					-256 * self.scale < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
+					-256 < chunk.y * 16 + size.height() // 2 - self.cam_y <= size.height()):
 					visible.add(chunk)
+		print(len(visible))
 		tx = -self.cam_x + size.width() // 2
 		ty = -self.cam_y + size.height() // 2
 		for chunk in visible:
@@ -171,6 +179,11 @@ class Dots:
 		if 0 <= x < 256 and 0 <= y < 256:
 			return self.chunks[x // 16][y // 16].map[x % 16][y % 16]
 		return self.dots_manager.empty
+
+	def getEater(self, x: int, y: int) -> int:
+		if 0 <= x < 256 and 0 <= y < 256:
+			return self.chunks[x // 16][y // 16].eater[x % 16][y % 16]
+		return -1
 
 	def getSurrounding(self, x: int, y: int, every: bool = False) -> Set[Tuple[int, int]]:
 		return set([i for i in ((x, y - 1), (x + 1, y - 1),
@@ -211,6 +224,9 @@ class Dots:
 							if other[1] != track[1] and pos == other[-1]:
 								self.addTrack(track + other[::-1])
 	
+	def settings(self) -> DotsSettings:
+		return self.dots_manager.settings
+	
 	def findNewEaten(self, x: int, y: int) -> None:
 		empty_dot = self._findEmpty(x, y)
 		for xx, yy in self.getAdjacent(x, y):
@@ -231,10 +247,15 @@ class Dots:
 					used.add(pos)
 			if not open_pos:
 				for i, j in used:
+					if self.dotOwner(i, j) not in {-1, self.dots_manager.player(self.getDot(x, y))}:
+						self.counters[self.dots_manager.player(self.getDot(x, y))] += 1
 					self.chunks[i // 16][j // 16].map[i % 16][j % 16] = self.dots_manager.eaten(
 						self.dots_manager.player(self.getDot(i, j)))
 					self.chunks[i // 16][j // 16].eater[i % 16][j % 16] = self.dots_manager.player(self.getDot(x, y))
-	
+
+	def dotOwner(self, x: int, y: int):
+		return self.getEater(x, y) if self.getEater(x, y) != -1 else self.dots_manager.player(self.getDot(x, y))
+
 	def translate(self, delta: QPoint, size: QSize) -> None:
 		size /= self.scale
 		self.cam_x += delta.x()

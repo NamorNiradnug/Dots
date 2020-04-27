@@ -97,13 +97,14 @@ class Modes:
 	Settings = 5
 	Rules = 7
 	Games = {LocalGame, SingleGame, MultiplayerGame}
-	Delevoping = {SingleGame, MultiplayerGame, Settings, Rules}
+	InDelevoping = {SingleGame, MultiplayerGame, Settings, Rules}
 
 
 class Frame(QMainWindow):
 	def __init__(self):
 		super().__init__()
 		self.dots = None
+		self.setMinimumSize(QSize(640, 640))
 		self.setWindowTitle("Dots")
 		self.draw_thread = Interval(1 / 60, self.update)
 		self.draw_thread.start()
@@ -153,7 +154,7 @@ class Frame(QMainWindow):
 				            func=lambda: self.setMode(Modes.Settings)
 				       )
 			}
-		elif self.mode in Modes.Delevoping:
+		elif self.mode in Modes.InDelevoping:
 			self.buttons = {
 				Button(QRect(self.geometry().width() // 2 - 64, self.geometry().height() // 2 + 50, 128, 48),
 			                      text="EXIT",
@@ -192,20 +193,36 @@ class Frame(QMainWindow):
 		if self.mode == Modes.LocalGame:
 			project_dot = self.coordsOnMap(self.cursorPos())
 			on_map = self.dotCoordinatesOnMap(project_dot)
-			if not all(on_map not in button.rect and self.cursorPos() not in button.rect for button in self.buttons) or\
-					on_map not in QRect(QPoint(), self.geometry().size()):
+			if (not all(on_map not in button.rect and self.cursorPos() not in button.rect for button in self.buttons) or
+					on_map not in QRect(QPoint(), self.geometry().size())):
 				project_dot = None
 			self.dots.draw(self.geometry().size(), painter, project_dot)
+			painter.drawRect(0, 0, 130, 35 + 32 * self.dots.dots_manager.players_number)
+			painter.setFont(QFont('ubuntu', 30))
+			painter.drawText(65 - painter.fontMetrics().width("SCORE") // 2, 33, "SCORE")
+			painter.setFont(QFont('ubuntu', 25))
+			for player in range(self.dots.dots_manager.players_number):
+				painter.setPen(Qt.white)
+				painter.drawLine(0, 35 + 32 * player, 130, 35 + 32 * player)
+				painter.drawLine(90, 35 + player * 32, 90, 67 + player * 32)
+				painter.setPen(self.dots.dots_manager.color(player))
+				painter.drawText(45 - painter.fontMetrics().width(self.dots.settings().nicks[player]) // 2,
+				                 65 + player * 32,
+				                 self.dots.settings().nicks[player])
+				painter.drawText(110 - painter.fontMetrics().width(str(self.dots.counters[player])) // 2,
+				                 65 + 32 * player,
+				                 str(self.dots.counters[player]))
 		if self.mode == Modes.GamePause:
 			self.dots.draw(self.geometry().size(), painter)
 			painter.setOpacity(.5)
 			painter.setBrush(Qt.black)
+			painter.setPen(Qt.black)
 			painter.drawRect(QRect(QPoint(), self.geometry().size()))
 			painter.setOpacity(1)
-		elif self.mode in Modes.Delevoping:
+		elif self.mode in Modes.InDelevoping:
 			painter.setPen(Qt.green)
 			painter.setFont(QFont('Times', 30))
-			painter.drawText(self.geometry(), Qt.AlignCenter, "IN DEVELOPING")
+			painter.drawText(QRect(QPoint(), self.geometry().size()), Qt.AlignCenter, "IN DEVELOPING")
 		for button in self.buttons:
 			button.draw(painter, self.cursorPos())
 		painter.end()
@@ -227,7 +244,7 @@ class Frame(QMainWindow):
 		if event.key() == Qt.Key_Escape:
 			if self.mode == Modes.LocalGame:
 				self.setMode(Modes.GamePause)
-			elif self.mode in Modes.Delevoping:
+			elif self.mode in Modes.InDelevoping:
 				self.setMode(self.last_mode)
 			elif self.mode == Modes.GamePause:
 				self.setMode(self.game_mode)
