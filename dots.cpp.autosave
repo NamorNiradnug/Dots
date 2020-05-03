@@ -127,11 +127,6 @@ void Chunk::draw(QPainter *painter)
     {
         for (int y = 0; y < 16; y++)
         {
-//            std::cout << x << " " << y  << " " << dot(x, y) << std::endl;
-//            if (dot(x, y) != 8)
-//            {
-//                std::cout << dot(x, y) << std::endl;
-//            }
             painter->setBrush(settings->colors()[dot(x, y) % 3]);
             painter->drawEllipse(dotCoord(x, y), 3, 3);
         }

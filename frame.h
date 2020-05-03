@@ -33,6 +33,11 @@ public:
     ~Frame();
     void paintEvent(QPaintEvent *_);
     void keyReleaseEvent(QKeyEvent *event);
+    void wheelEvent(QWheelEvent *event);
+    void mousePressEvent(QMouseEvent *event);
+    QPoint dotCoordinatesOnMap(QPoint dot);
+    QPoint cursorPos();
+    QPoint coordsOnMap(QPoint point);
 private:
     enum Modes
     {

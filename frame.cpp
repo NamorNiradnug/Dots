@@ -1,4 +1,5 @@
 #include "frame.h"
+#include <iostream>
 
 
 Frame::Frame()
@@ -15,11 +16,24 @@ Frame::Frame()
 void Frame::paintEvent(QPaintEvent *_)
 {
     QPainter *painter = new QPainter(this);
-    if (mode < 0)
+    if (mode == -1)
     {
-        dots.draw(this->geometry().size(), painter);
+        QPoint project_dot = coordsOnMap(cursorPos());
+        QPoint on_map = dotCoordinatesOnMap(project_dot);
+        if (not QRect(QPoint(), geometry().size()).contains(cursorPos()) or
+            not QRect(QPoint(), geometry().size()).contains(on_map))
+        {
+            project_dot = QPoint();
+        }
+        dots.draw(geometry().size(), painter, project_dot);
     }
     painter->end();
+}
+
+QPoint Frame::dotCoordinatesOnMap(QPoint dot)
+{
+    return (dot * 16 + QPoint(8, 8) - dots.camPos() +
+            QPoint(width(), height()) / (dots.getScale() * 2)) * dots.getScale();
 }
 
 void Frame::keyReleaseEvent(QKeyEvent *event)
@@ -45,6 +59,43 @@ void Frame::keyReleaseEvent(QKeyEvent *event)
             dots.translate(QPoint(10, 0), gsize);
         }
     }
+}
+
+void Frame::wheelEvent(QWheelEvent *event)
+{
+    if (mode < 0)
+    {
+        dots.changeScale(1.0 * event->angleDelta().y() / 240.0, geometry().size());
+    }
+}
+
+void Frame::mousePressEvent(QMouseEvent *event)
+{
+    if (mode == -1)
+    {
+        if (event->button() == Qt::LeftButton)
+        {
+            QPoint on_map = dotCoordinatesOnMap(coordsOnMap(event->pos()));
+            if (QRect(QPoint(), geometry().size()).contains(on_map))
+            {
+                dots.turn(coordsOnMap(event->pos()));
+            }
+
+        }
+    }
+}
+
+QPoint Frame::coordsOnMap(QPoint point)
+{
+    QPoint real_point = point / dots.getScale() + dots.camPos() - \
+            QPoint(width() / 2, height() / 2) / dots.getScale();
+    return QPoint(round(real_point.x() / 16 - 0.5),
+                  round(real_point.y() / 16 - 0.5));
+}
+
+QPoint Frame::cursorPos()
+{
+    return cursor().pos() - geometry().topLeft();
 }
 
 Frame::~Frame()
