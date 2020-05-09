@@ -4,77 +4,6 @@
 #include <iostream>
 
 
-std::set<QPoint> circle(int cx, int cy)
-{
-    std::set<QPoint> answer = {
-        QPoint(cx - 1, cy),
-        QPoint(cx + 1, cy),
-        QPoint(cx, cy - 1),
-        QPoint(cx, cy + 1)
-    };
-    return answer;
-}
-
-bool operator <(QPoint point1, QPoint point2)
-{
-    if (point1.y() != point2.y())
-    {
-        return point1.y() < point2.y();
-    }
-    return point1.x() < point2.x();
-}
-
-bool operator <(QLine line1, QLine line2)
-{
-    if (line1.p1() != line2.p1())
-    {
-        return line1.p1() < line2.p1();
-    }
-    return line1.p2() < line2.p2();
-}
-
-std::vector<QPoint> operator +(std::vector<QPoint> first, std::vector<QPoint> second)
-{
-    std::vector<QPoint> answer = first;
-    answer.insert(answer.end(), second.begin(), second.end());
-    return answer;
-}
-
-std::vector<QPoint> reversed(std::vector<QPoint> vec)
-{
-    std::reverse(vec.begin(), vec.end());
-    return vec;
-}
-
-int player(int dot)
-{
-    return dot % 3;
-}
-
-int eater(int dot)
-{
-    int e = dot / 3;
-    return e;
-}
-
-//#######################################
-Settings::Settings()
-{
-    colors_ = {
-        {0, Qt::red},
-        {1, Qt::blue},
-        {2, Qt::transparent}
-    };
-}
-
-std::map<int, QColor> Settings::colors()
-{
-    return colors_;
-}
-
-Settings *dsettings = new Settings();
-
-//#######################################
 Chunk::Chunk(int x, int y)
 {
     map = std::vector<std::vector<int>>(16, std::vector<int>(16));
@@ -154,7 +83,7 @@ void Chunk::drawDots(QPainter *painter, Dots *dots)
 {
     for (QLine track: tracks)
     {
-        painter->setPen(dsettings->colors()[player(dot(track.p1().x() % 16,
+        painter->setPen(dsettings()->colors()[player(dot(track.p1().x() % 16,
                                                       track.p1().y() % 16))]);
         painter->drawLine(track.p1() * 16 + QPoint(8, 8), track.p2() * 16 + QPoint(8, 8));
     }
@@ -165,20 +94,20 @@ void Chunk::drawDots(QPainter *painter, Dots *dots)
     {
         for (int y = 0; y < 16; y++)
         {
-            painter->setBrush(dsettings->colors()[player(dot(x, y))]);
+            painter->setBrush(dsettings()->colors()[player(dot(x, y))]);
             painter->drawEllipse(dotCoord(x, y), 3, 3);
             if (dot(x, y) == 8)
             {
                 continue;
             }
-            if (dots->isFirst(QPoint(x, y)))
+            if (dots->isFirst(QPoint(x + this->x, y + this->y)))
             {
                 painter->setBrush(Qt::transparent);
-                painter->setPen(dsettings->colors()[player(dot(x, y))]);
+                painter->setPen(dsettings()->colors()[player(dot(x, y))]);
                 painter->drawEllipse(dotCoord(x, y), 6, 6);
                 painter->setPen(Qt::transparent);
             }
-            fill_brush.setColor(dsettings->colors()[player(dot(x, y))]);
+            fill_brush.setColor(dsettings()->colors()[player(dot(x, y))]);
             painter->setBrush(fill_brush);
             std::vector<QPoint> circle_ = {
                 QPoint(x, y - 1),
@@ -188,7 +117,8 @@ void Chunk::drawDots(QPainter *painter, Dots *dots)
             };
             for (int i = 0; i < 4; i++)
             {
-                if (dots->dot(circle_[i]) == dot(x, y) && dot(x, y) == dots->dot(circle_[(i + 1) % 4]))
+                if (dots->dot(circle_[i] + QPoint(this->x, this->y)) == dot(x, y) &&
+                        dot(x, y) == dots->dot(circle_[(i + 1) % 4] + QPoint(this->x, this->y)))
                 {
                     QPoint mono_triang[3] = {
                         dotCoord(x, y),
@@ -198,7 +128,7 @@ void Chunk::drawDots(QPainter *painter, Dots *dots)
                     painter->drawPolygon(mono_triang, 3);
                 }
             }
-            fill_brush.setColor(dsettings->colors()[eater(dot(x, y))]);
+            fill_brush.setColor(dsettings()->colors()[eater(dot(x, y))]);
             painter->setBrush(fill_brush);
             QPoint poly[4] = {
                 dotCoord(x, y - 1),
@@ -349,9 +279,8 @@ void Dots::normalize(QSize size)
     cam_y = std::min(cam_y, 4096 - size.height() / 2);
 }
 
-void Dots::findNewTracksAndEaten(int x, int y)
+void Dots::findNewTracks(int x, int y)
 {
-    //-----find new tracks-----
     std::set<std::vector<QPoint>> open_tracks = {{QPoint(x, y)}}, open_tracks_copy;
     std::set<QPoint> used = {QPoint(x, y)};
     std::vector<QPoint> new_track;
@@ -394,8 +323,11 @@ void Dots::findNewTracksAndEaten(int x, int y)
             }
         }
     }
-    //------find new eaten-----
-    std::set<QPoint> open, open_copy;
+}
+
+void Dots::findNewEaten(int x, int y)
+{
+    std::set<QPoint> open, open_copy, used;
     bool not_eaten;
     for (QPoint start: circle(x, y))
     {
@@ -428,7 +360,7 @@ void Dots::findNewTracksAndEaten(int x, int y)
             for (QPoint pos: used)
             {
                 chunk(pos.x(), pos.y())->setDot(pos.x() % 16, pos.y() % 16,
-                                                player(dot(pos.x(), pos.y())) + 3 * player(dot(x, y)));
+                                                player(dot(pos)) + 3 * player(dot(x, y)));
             }
         }
     }
@@ -436,6 +368,10 @@ void Dots::findNewTracksAndEaten(int x, int y)
 
 void Dots::turn(QPoint pos)
 {
+    if (winner() != 2)
+    {
+        return;
+    }
     if (QRect(1, 1, 255, 255).contains(pos.x(), pos.y()) and dot(pos.x(), pos.y()) == 8)
     {
         chunk(pos.x(), pos.y())->setDot(pos.x() % 16, pos.y() % 16, turning_player + 6);
@@ -443,7 +379,8 @@ void Dots::turn(QPoint pos)
         max_y = std::max(max_y, pos.y());
         min_x = std::min(min_x, pos.x());
         min_y = std::min(min_y, pos.y());
-        this->findNewTracksAndEaten(pos.x(), pos.y());
+        findNewTracks(pos.x(), pos.y());
+        findNewEaten(pos.x(), pos.y());
         if (first1 == QPoint(-1, -1) and turning_player == 0)
         {
             first1 = pos;
@@ -452,20 +389,26 @@ void Dots::turn(QPoint pos)
         {
             second1 = pos;
         }
-        if (first1 != QPoint(-1, -1) and eater(dot(first1)) == 1)
-        {
-            std::cout << "Second player won!\n";
-        }
-        if (second1 != QPoint(-1, -1) and eater(dot(second1)) == 0)
-        {
-            std::cout << "First player won!\n";
-        }
         turning_player = (turning_player + 1) % 2;
     }
 }
 
+int Dots::winner()
+{
+    if (first1 != QPoint(-1, -1) and eater(dot(first1)) == 1)
+    {
+        return 1;
+    }
+    if (second1 != QPoint(-1, -1) and eater(dot(second1)) == 0)
+    {
+        return 0;
+    }
+    return 2;
+}
+
 void Dots::draw(QSize size, QPainter *painter, QPoint cursor)
 {
+    painter->save();
     painter->scale(scale, scale);
     size /= scale;
     normalize(size);
@@ -492,9 +435,15 @@ void Dots::draw(QSize size, QPainter *painter, QPoint cursor)
     if (QRect(1, 1, 255, 255).contains(cursor) and
             dot(cursor.x(), cursor.y()) == 8)
     {
-        painter->setBrush(dsettings->colors()[turning_player]);
+        painter->setBrush(dsettings()->colors()[turning_player]);
         painter->setOpacity(0.5);
         painter->drawEllipse(cursor * 16 + QPoint(8, 8), 3, 3);
-
+        if (first1 == QPoint(-1, -1) or second1 == QPoint(-1, -1))
+        {
+            painter->setBrush(Qt::transparent);
+            painter->setPen(dsettings()->colors()[turning_player]);
+            painter->drawEllipse(cursor * 16 + QPoint(8, 8), 6, 6);
+        }
     }
+    painter->restore();
 }
