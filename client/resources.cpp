@@ -1,9 +1,10 @@
-#include <resources.h>
-
+#include "resources.h"
+#include "QDebug"
 
 std::set<QPoint> circle(int cx, int cy)
 {
-    std::set<QPoint> answer = {
+    std::set<QPoint> answer =
+    {
         QPoint(cx - 1, cy),
         QPoint(cx + 1, cy),
         QPoint(cx, cy - 1),
@@ -18,6 +19,7 @@ bool operator <(QPoint point1, QPoint point2)
     {
         return point1.y() < point2.y();
     }
+
     return point1.x() < point2.x();
 }
 
@@ -27,6 +29,7 @@ bool operator <(QLine line1, QLine line2)
     {
         return line1.p1() < line2.p1();
     }
+
     return line1.p2() < line2.p2();
 }
 
@@ -55,36 +58,47 @@ int eater(int dot)
 }
 
 //#######################################
-Settings::Settings()
-{
-    colors_ = {
-        {0, Qt::red},
-        {1, Qt::blue},
-        {2, Qt::transparent}
-    };
-}
+Settings::Settings() {}
 
-std::map<int, QColor> Settings::colors()
+QColor Settings::color(int player)
 {
-    return colors_;
+    if (0 <= player && player <= 2)
+    {
+        return colors[player];
+    }
+
+    return bad_color;
 }
 
 QString Settings::name(int player)
 {
-    if (player == 0)
+    if (0 <= player && player < 2)
     {
-        return name1;
+        return names[player];
     }
-    if (player == 1)
+
+    return bad_name;
+}
+
+void Settings::setPlayerName(int player, QString name)
+{
+    if (0 <= player && player < 2)
     {
-        return name2;
+        names[player] = name;
     }
-    return "Undefined";
+}
+
+void Settings::setPlayerColor(int player, QColor color)
+{
+    if (0 <= player && player < 2)
+    {
+        colors[player] = color;
+    }
 }
 
 static Settings *dsettings_ = new Settings();
 
-Settings* dsettings()
+Settings *dsettings()
 {
     return dsettings_;
 }

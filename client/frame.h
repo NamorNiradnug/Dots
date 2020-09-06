@@ -5,22 +5,22 @@
 #include <QTimer> // for QTimer
 #include <string> // for std::string
 #include "dots.h" // for Dots
-
-
-class Button;
-
+#include "menu.h"
+#include "settingsmenu.h"
 
 class Frame : public QMainWindow
 {
+    Q_OBJECT
+
 public:
     Frame();
     ~Frame();
-    enum Modes
+    enum Mode
     {
         NewGame = -3,
         GameMenu = -2,
         Game = -1,
-        QuitMode = 0
+        Setting = 1
     };
     void paintEvent(QPaintEvent *_);
     void keyReleaseEvent(QKeyEvent *event);
@@ -29,32 +29,24 @@ public:
     void mouseMoveEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void resizeEvent(QResizeEvent *event);
-    void setMode(Modes mode);
-    void updateButtons();
+    void updateMenuPos();
     QPoint dotCoordinatesOnMap(QPoint dot);
     QPoint cursorPos();
     QPoint coordsOnMap(QPoint point);
+public slots:
+    void startNewGame();
+    void continueGame();
+    void openSettings();
+    void openMenu();
 private:
+    void setMode(Mode mode);
+    void setWidget(QWidget *widget);
+    void centredWidget(QWidget *widget);
     Dots dots;
-    Modes mode;
+    Mode mode;
     QTimer *draw_timer;
     QPoint last_pos = QPoint();
-    std::vector<Button> buttons = {};
-};
-
-
-class Button
-{
-public:
-    Button(QRect rect, QString text, Frame *frame, Frame::Modes mode);
-    Button(QRect rect, QImage image, Frame *frame, Frame::Modes mode);
-    bool event(QMouseEvent *event);
-    void draw(QPainter *painter, QPoint cursor_pos);
-private:
-    QRect rect;
-    QString lines = "";
-    QImage image = QImage();
-    QFont font = QFont("ubuntu", 20);
-    Frame *frame;
-    Frame::Modes mode;
+    Menu *menu = new Menu(this);
+    SettingsMenu *settings_menu = new SettingsMenu(this);
+    QWidget *current_widget = 0;
 };

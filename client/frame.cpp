@@ -1,91 +1,17 @@
 #include "frame.h"
-#include <iostream>
+#include "QPainter"
+#include "QtEvents"
+#include "QDebug"
+#include "cmath"
 
-
-//###################################
-Button::Button(QRect rect, QString text, Frame *frame, Frame::Modes mode)
-{
-    this->rect = rect;
-    this->frame = frame;
-    this->mode = mode;
-    QStringList stext = text.split(" ");
-    QFontMetrics metrics = QFontMetrics(font);
-    QVector<QString> vlines = {};
-    if (stext.size() >= 1)
-    {
-        vlines.push_back(stext[0]);
-        stext.erase(stext.begin());
-        for (QString word: stext)
-        {
-            if (metrics.horizontalAdvance(vlines.back() + word) < rect.width() - 4)
-            {
-                vlines.back() += " " + word;
-            }
-            else
-            {
-                vlines.push_back(word);
-            }
-        }
-    }
-    for (QString line: vlines)
-    {
-        lines += line + "\n";
-    }
-    lines.remove(lines.size() - 1, 1);
-}
-
-Button::Button(QRect rect, QImage image, Frame *frame, Frame::Modes mode)
-{
-    this->rect = rect;
-    this->image = image;
-    this->frame = frame;
-    this->mode = mode;
-}
-
-bool Button::event(QMouseEvent *event)
-{
-    if (rect.contains(event->pos()) && event->button() == Qt::LeftButton)
-    {
-        frame->setMode(mode);
-        return true;
-    }
-    return false;
-}
-
-void Button::draw(QPainter *painter, QPoint cursor_pos)
-{
-    if (image.isNull())
-    {
-        QPen pen(Qt::black);
-        if (rect.contains(cursor_pos))
-        {
-            pen.setColor(Qt::white);
-        }
-        pen.setWidth(2);
-        painter->setPen(pen);
-        painter->setBrush(QColor(255, 217, 168));
-        painter->drawRoundedRect(rect, 15, 15);
-    }
-    else
-    {
-        if (rect.contains(cursor_pos))
-        {
-            painter->setOpacity(.6);
-        }
-        painter->drawImage(rect, image);
-    }
-    painter->setOpacity(1);
-    painter->setFont(font);
-    painter->setPen(QColor(10, 10, 20));
-    painter->drawText(rect, Qt::AlignCenter, lines);
-}
-
-//###################################
 Frame::Frame()
 {
+    menu->hide();
+    settings_menu->hide();
+    settings_menu->syncWithDSettings();
     this->setMinimumSize(QSize(640, 480));
     dots = Dots();
-    mode = Modes::Game;
+    mode = Mode::Game;
     draw_timer = new QTimer();
     draw_timer->setInterval(20); // 50 fps
     draw_timer->connect(draw_timer, SIGNAL(timeout()), this, SLOT(update()));
@@ -95,33 +21,26 @@ Frame::Frame()
 void Frame::paintEvent(QPaintEvent *_)
 {
     QPainter *painter = new QPainter(this);
-    if (mode == Modes::Game)
+
+    if (mode == Mode::Game)
     {
         QPoint project_dot = coordsOnMap(cursorPos());
         QPoint on_map = dotCoordinatesOnMap(project_dot);
+
         if (not QRect(QPoint(), geometry().size()).contains(cursorPos()) or
                 not QRect(QPoint(), geometry().size()).contains(on_map))
         {
             project_dot = QPoint();
         }
+
         dots.draw(geometry().size(), painter, project_dot);
     }
-    else if (mode == Modes::GameMenu)
+    else
     {
         dots.draw(geometry().size(), painter, QPoint());
         painter->fillRect(rect(), QColor(0, 0, 0, 128));
-        if (dots.winner() != 2)
-        {
-            painter->setFont(QFont("times", 40));
-            painter->setPen(dsettings()->colors()[dots.winner()]);
-            painter->drawText(QRect(rect().center() - QPoint(160, 70), QSize(320, 70)),
-                              Qt::AlignCenter, dsettings()->name(dots.winner()) + " won!");
-        }
     }
-    for (Button button: buttons)
-    {
-        button.draw(painter, cursorPos());
-    }
+
     painter->end();
 }
 
@@ -134,43 +53,56 @@ QPoint Frame::dotCoordinatesOnMap(QPoint dot)
 void Frame::keyReleaseEvent(QKeyEvent *event)
 {
     int key = event->key();
-    QSize gsize =  geometry().size();
-    if (mode == Modes::Game)
+    QSize gsize = geometry().size();
+
+    if (mode == Mode::Game)
     {
         if (key == Qt::Key_Up)
         {
             dots.translate(QPoint(0, -10), gsize);
         }
+
         if (key == Qt::Key_Down)
         {
             dots.translate(QPoint(0, 10), gsize);
         }
+
         if (key == Qt::Key_Left)
         {
             dots.translate(QPoint(-10, 0), gsize);
         }
+
         if (key == Qt::Key_Right)
         {
             dots.translate(QPoint(10, 0), gsize);
         }
+
         if (key == Qt::Key_Escape)
         {
-            setMode(Modes::GameMenu);
+            setMode(Mode::GameMenu);
         }
     }
-    else if (mode == Modes::GameMenu)
+    else if (mode == Mode::GameMenu)
     {
         if (key == Qt::Key_Escape and dots.winner() == 2)
         {
-            setMode(Modes::Game);
+            setMode(Mode::Game);
+        }
+    }
+    else if (mode == Mode::Setting)
+    {
+        if (key == Qt::Key_Escape)
+        {
+            setMode(Mode::GameMenu);
         }
     }
 }
 
 void Frame::wheelEvent(QWheelEvent *event)
 {
-    if (mode < 0)
+    if (mode == Mode::Game)
     {
+        qDebug() << event->angleDelta().y();
         dots.changeScale(1.0 * event->angleDelta().y() / 240.0, geometry().size());
     }
 }
@@ -182,36 +114,32 @@ void Frame::mousePressEvent(QMouseEvent *event)
 
 void Frame::mouseMoveEvent(QMouseEvent *event)
 {
-    if (mode == Modes::Game)
+    if (mode == Mode::Game)
     {
         if (event->buttons() == Qt::RightButton)
         {
             dots.translate((last_pos - event->pos()) / dots.getScale(), geometry().size());
         }
+
         last_pos = event->pos();
     }
 }
 
 void Frame::mouseReleaseEvent(QMouseEvent *event)
 {
-    for (Button button: buttons)
-    {
-        if (button.event(event))
-        {
-            return;
-        }
-    }
-    if (mode == Modes::Game)
+    if (mode == Mode::Game)
     {
         if (event->button() == Qt::LeftButton)
         {
             QPoint on_map = dotCoordinatesOnMap(coordsOnMap(event->pos()));
+
             if (QRect(QPoint(), geometry().size()).contains(on_map))
             {
                 dots.turn(coordsOnMap(event->pos()));
+
                 if (dots.winner() != 2)
                 {
-                    setMode(Modes::GameMenu);
+                    setMode(Mode::GameMenu);
                 }
             }
         }
@@ -221,53 +149,69 @@ void Frame::mouseReleaseEvent(QMouseEvent *event)
 void Frame::resizeEvent(QResizeEvent *event)
 {
     QMainWindow::resizeEvent(event);
-    updateButtons();
+    updateMenuPos();
 }
 
-void Frame::setMode(Frame::Modes nmode)
+void Frame::setMode(Frame::Mode nmode)
 {
-    if (nmode == Modes::QuitMode)
-    {
-        close();
-        return;
-    }
-    if (nmode == Modes::NewGame)
+    if (nmode == Mode::NewGame)
     {
         dots = Dots();
-        nmode = Modes::Game;
+        nmode = Mode::Game;
     }
+
+    if (nmode == Mode::Game)
+    {
+        setWidget(0);
+    }
+
+    if (nmode == Mode::GameMenu)
+    {
+        if (dots.winner() != 2)
+        {
+            menu->win_label->setText(dsettings()->name(dots.winner()) + " won!");
+            QPalette win_label_palette = menu->win_label->palette();
+            win_label_palette.setColor(QPalette::WindowText, dsettings()->color(dots.winner()));
+            menu->win_label->setPalette(win_label_palette);
+            menu->continue_btn->hide();
+        }
+        else
+        {
+            menu->win_label->setText("");
+            menu->continue_btn->show();
+        }
+
+        setWidget(menu);
+    }
+
+    if (nmode == Mode::Setting)
+    {
+        setWidget(settings_menu);
+    }
+
     mode = nmode;
-    updateButtons();
+    updateMenuPos();
 }
 
-void Frame::updateButtons()
+void Frame::centredWidget(QWidget *widget)
 {
-    buttons.clear();
-    std::vector<Button> new_buttons;
-    if (mode == Modes::GameMenu)
+    widget->setGeometry((geometry().width() - widget->width()) / 2,
+                        (geometry().height() - widget->height()) / 2,
+                        widget->width(), widget->height());
+}
+
+void Frame::updateMenuPos()
+{
+    if (current_widget != 0)
     {
-        new_buttons = {
-            Button(QRect(rect().center() - QPoint(160, -40), QSize(150, 40)),
-            "QUIT", this, Modes::QuitMode),
-            Button(QRect(rect().center() - QPoint(-10, -40), QSize(150, 40)),
-            "NEW GAME", this, Modes::NewGame)
-        };
-        if (dots.winner() == 2)
-        {
-            new_buttons.push_back(Button(QRect(rect().center() - QPoint(160, 70), QSize(320, 50)),
-                                         "CONTINUE GAME", this, Modes::Game));
-        }
-    }
-    for (Button btn: new_buttons)
-    {
-        buttons.push_back(btn);
+        centredWidget(current_widget);
     }
 }
 
 QPoint Frame::coordsOnMap(QPoint point)
 {
     QPoint real_point = point / dots.getScale() + dots.camPos() - \
-            QPoint(width() / 2, height() / 2) / dots.getScale();
+                        QPoint(width() / 2, height() / 2) / dots.getScale();
     return QPoint(round(real_point.x() / 16 - 0.5),
                   round(real_point.y() / 16 - 0.5));
 }
@@ -281,4 +225,42 @@ Frame::~Frame()
 {
     draw_timer->stop();
     delete draw_timer;
+}
+
+void Frame::setWidget(QWidget *widget)
+{
+    if (current_widget != 0)
+    {
+        current_widget->hide();
+    }
+
+    current_widget = widget;
+
+    if (current_widget != 0)
+    {
+        current_widget->show();
+    }
+
+    updateMenuPos();
+}
+/* Frame slots */
+
+void Frame::startNewGame()
+{
+    setMode(Mode::NewGame);
+}
+
+void Frame::continueGame()
+{
+    setMode(Mode::Game);
+}
+
+void Frame::openSettings()
+{
+    setMode(Mode::Setting);
+}
+
+void Frame::openMenu()
+{
+    setMode(Mode::GameMenu);
 }

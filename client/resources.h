@@ -22,11 +22,15 @@ class Settings
 {
 public:
     Settings();
-    std::map<int, QColor> colors();
+    QColor color(int player);
     QString name(int player);
+    void setPlayerName(int player, QString name);
+    void setPlayerColor(int player, QColor color);
 private:
-    std::map<int, QColor> colors_;
-    QString name1 = "Player 1", name2 = "Player 2";
+    QColor colors[3] = {Qt::blue, Qt::red, Qt::transparent};
+    QColor bad_color = QColor(200, 0, 230);
+    QString names[3] = {"Player 1", "Player 2"};
+    QString bad_name = "__$UndefPlayer$__";
 };
 
-Settings* dsettings();
+Settings *dsettings();
